@@ -14,7 +14,8 @@ Ultralytics/
 Respiratory-rate-monitoring/
 smil/
 
-# Reference PDFs (copyrighted) & LaTeX build artifacts. Push the manuscript separately when ready.
+# Copyrighted reference PDFs live in Paper/ (== paper/ on case-insensitive Windows FS); the tracked
+# manuscript source lives in manuscript/ instead, to avoid that case collision. LaTeX artifacts below.
 Paper/
 paper/mtt_submission/pdf/
 paper/mtt_submission/photo/

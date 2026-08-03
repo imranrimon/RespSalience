@@ -43,6 +43,6 @@ prism_breath = ["config/*.yaml"]
 # scripts/        run-from-root CLIs; grouped by category in README (paths are root-relative by design)
 # tests/          standalone self-checking test_*.py (no pytest suite)
 # docs/           design docs, runbooks, reviewer critique, results tables, paper positioning
-# paper/          IEEE MTT manuscript + 600-DPI PDF figures (paper/prism_breath/fig/)
+# manuscript/     IEEE MTT paper (Overleaf-ready): prism_breath.tex + .bib + 600-DPI figs
 # tools/          one-off utilities (pdf extraction, project reorg helper)
 # data/ outputs/ external/   gitignored (datasets, results/checkpoints, vendored third-party)

@@ -32,9 +32,9 @@ prism-breath/
 ├── scripts/                 # run-from-root CLIs (paths are project-root-relative — run from repo root)
 ├── tests/                   # standalone self-checking test_*.py (no pytest suite)
 ├── docs/                    # design docs, runbooks, reviewer critique, RESULTS_TABLES, POSITIONING
-├── paper/                   # IEEE MTT manuscript + 600-DPI PDF figures (paper/prism_breath/fig/)
+├── manuscript/             # IEEE MTT paper (Overleaf-ready): prism_breath.tex + .bib + 600-DPI figs
 ├── tools/                   # one-off utilities
-├── data/  outputs/  external/   # gitignored (datasets, results/checkpoints, vendored third-party)
+├── data/ outputs/ external/ Paper/  # gitignored (datasets, checkpoints, vendored 3rd-party, copyrighted ref PDFs)
 ├── pipeline.py              # single-video CLI / dashboard / vitals entry point
 ├── pyproject.toml  requirements.txt  environment.yml   # environment.yml is authoritative (conda resp_env)
 ```
