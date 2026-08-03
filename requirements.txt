@@ -1,0 +1,12 @@
+torch>=2.0.0
+numpy
+pandas
+opencv-python
+scikit-learn
+tqdm
+mediapipe
+streamlit
+plotly
+ultralytics
+requests
+pyyaml

@@ -1,0 +1,45 @@
+# Data & experiment outputs (never versioned)
+data/
+outputs/
+*.zip
+*.tar.gz
+*.mp4
+*.avi
+*.wav
+*.npz
+
+# Vendored third-party & legacy (pin via requirements/submodule, keep out of history)
+external/
+Ultralytics/
+Respiratory-rate-monitoring/
+smil/
+
+# Reference PDFs (copyrighted) & LaTeX build artifacts. Push the manuscript separately when ready.
+Paper/
+paper/mtt_submission/pdf/
+paper/mtt_submission/photo/
+*.aux
+*.bbl
+*.blg
+*.synctex.gz
+
+# Models (Large Files)
+*.pth
+*.pt
+*.pkl
+!data/models/.gitkeep
+
+# Environment
+.env
+venv/
+env/
+__pycache__/
+*.pyc
+
+# IDEs
+.vscode/
+.idea/
+
+# Experiment Logs
+pipeline_debug.log
+*.log

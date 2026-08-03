@@ -1,0 +1,49 @@
+NAME: test_infer
+
+# Paths are relative to the project root (the working directory all runbooks use,
+# e.g. Set-Location "<repo>"). Keep them relative so the config is portable across
+# machines/drives instead of hardcoding an absolute path.
+DATA_PATH:
+  OUTPUT_DIR: output
+  BODY_DETECTOR_PATH: data/yolov8m.pt
+  FACE_DETECTOR_PATH: data/yolov8n-face.pt
+  VIDEO_FILE: data/demo-air-400-s05-23.mp4
+
+MODEL:
+  DROP_RATE: 0.2
+  NAME: VIRENet
+  LOSS: psd_mse
+  FRAME_DEPTH: 10
+  IN_CHANNELS: 3
+
+TEST:
+  DATA:
+    - INFANT_FLAG: True
+      DATA_FORMAT: NDCHW
+      PREPROCESS:
+        DO_DOWNSAMPLE_BEFORE_PREPROCESS: True
+        DOWNSAMPLE_SIZE_BEFORE_PREPROCESS: [320, 180]
+        DATA_NORMALIZE_TYPE: Standardized
+        LABEL_NORMALIZE_TYPE: DiffNormalized
+        FLOW_NORMALIZE_TYPE: Standardized
+        DO_CHUNK: True
+        CHUNK_LENGTH: 180
+        DO_CROP_INFANT_REGION: True
+        DYNAMIC_DETECTION: True
+        DYNAMIC_DETECTION_FREQUENCY: 10
+        INFANT_REGION: Body
+        BODY_CONF_THRESHOLD: 0.25
+        FACE_CONF_THRESHOLD: 0.5
+        CHEST_SHIFT_ALPHA: 0.2
+        DO_OPTICAL_FLOW: True
+        OF_METHOD: raft
+        DO_DOWNSAMPLE_BEFORE_TRAINING: True
+        DOWNSAMPLE_SIZE_BEFORE_TRAINING: [96, 96]
+
+INFERENCE:
+  BATCH_SIZE: 1
+  EVALUATION_METHOD: FFT
+  USE_POST_PROCESS: True
+
+LOGGING:
+  USE_WANDB: False

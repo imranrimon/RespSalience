@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "prism-breath"
+version = "1.0.0"
+description = "Non-contact pediatric respiratory-rate estimation and tachypnea screening (PRISM-Breath)"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Proprietary - research use" }
+authors = [{ name = "PRISM-Breath Team" }]
+
+# Authoritative pinned spec is environment.yml (conda). requirements.txt is a minimal pip subset.
+dependencies = [
+    "torch>=2.8",
+    "numpy",
+    "pandas",
+    "scipy",
+    "scikit-learn",
+    "opencv-python",
+    "transformers",
+    "librosa",
+    "mediapipe",
+    "ultralytics",
+    "matplotlib",
+    "imageio",
+    "openpyxl",
+]
+
+[project.optional-dependencies]
+app = ["streamlit", "fastapi", "uvicorn"]
+
+[tool.setuptools]
+packages = ["prism_breath"]
+package-dir = { prism_breath = "src" }
+
+[tool.setuptools.package-data]
+prism_breath = ["config/*.yaml"]
+
+# ---- conventions (see README.md for the full map) ----
+# src/            importable package (core models, fusion, utils, config)
+# scripts/        run-from-root CLIs; grouped by category in README (paths are root-relative by design)
+# tests/          standalone self-checking test_*.py (no pytest suite)
+# docs/           design docs, runbooks, reviewer critique, results tables, paper positioning
+# paper/          IEEE MTT manuscript + 600-DPI PDF figures (paper/prism_breath/fig/)
+# tools/          one-off utilities (pdf extraction, project reorg helper)
+# data/ outputs/ external/   gitignored (datasets, results/checkpoints, vendored third-party)
