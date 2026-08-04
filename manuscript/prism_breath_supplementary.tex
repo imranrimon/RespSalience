@@ -1,0 +1,184 @@
+%% PRISM-Breath -- Supplementary Material (standalone; compiles by itself with pdfLaTeX)
+%% No bibliography needed; references to the main paper are by name.
+\documentclass[journal]{IEEEtran}
+\usepackage[cmex10]{amsmath}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{amssymb}
+\usepackage{multirow}
+
+\renewcommand{\thetable}{S\Roman{table}}
+\renewcommand{\thesection}{S\arabic{section}}
+\renewcommand{\thefigure}{S\arabic{figure}}
+
+\begin{document}
+
+\title{Supplementary Material\\ Raw Respiratory-Rate Error Is Not Clinical Utility: A Calibrated,
+Reliability-Weighted Non-Contact Screen for Infant Tachypnea}
+\author{Imran~Rimon}
+\markboth{IEEE Journal of Biomedical and Health Informatics -- Supplementary}{}
+\maketitle
+
+\noindent This document supplements the main paper with (i) complete per-fold results for
+PRISM-Breath and the four published extractors, (ii) an extended design-variant table, and (iii) the
+full training and inference hyperparameters. All numbers are computed from the same subject-disjoint
+five-fold cross-validation prediction files used in the main paper; every subject is tested exactly once.
+
+\section{Per-Fold Results}
+Tables~\ref{tab:s1}--\ref{tab:s3} give the fold-level breakdown behind the pooled numbers in the main
+paper. Folds are subject-disjoint; the decision for sensitivity/specificity applies the WHO age-band
+threshold to the predicted rate ($\hat r \ge \tau_{\text{age}}$). Fold~0 is consistently the hardest for
+every method (lowest AUROC, highest MAE), indicating a genuinely difficult subject subset rather than
+model instability---PRISM's advantage holds even there ($0.812$ vs.\ $0.613$--$0.681$).
+
+\begin{table}[!t]
+\caption{PRISM-Breath per-fold clinical performance (subject-level).}
+\label{tab:s1}\centering\small
+\begin{tabular}{@{}lcccccc@{}}\toprule
+Fold & $n$ & pos & RR-MAE & Sens & Spec & AUROC\\\midrule
+Fold 0 & 67 & 20 & 8.20 & 0.60 & 0.94 & 0.812 \\
+Fold 1 & 67 & 20 & 5.54 & 0.65 & 0.91 & 0.882 \\
+Fold 2 & 66 & 15 & 5.16 & 0.93 & 0.90 & 0.969 \\
+Fold 3 & 66 & 17 & 6.85 & 0.53 & 0.94 & 0.868 \\
+Fold 4 & 66 & 14 & 5.18 & 0.64 & 0.88 & 0.929 \\\midrule
+\textbf{Pooled} & 332 & 86 & 6.19 & 0.66 & 0.91 & 0.879 \\
+\textbf{Mean$\pm$SD} & --- & --- & $6.19{\pm}1.32$ & --- & --- & $0.892{\pm}0.060$ \\\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[!t]
+\caption{Per-fold tachypnea AUROC, all methods (298 matched subjects for baselines).}
+\label{tab:s2}\centering\small
+\begin{tabular}{@{}lccccc@{}}\toprule
+Method & Fold 0 & Fold 1 & Fold 2 & Fold 3 & Fold 4\\\midrule
+\textbf{PRISM-Breath} & \textbf{0.812} & \textbf{0.882} & \textbf{0.969} & \textbf{0.868} & \textbf{0.929} \\
+EfficientPhys & 0.681 & 0.750 & 0.770 & 0.821 & 0.750 \\
+DeepPhys & 0.675 & 0.793 & 0.808 & 0.823 & 0.715 \\
+TS-CAN & 0.626 & 0.814 & 0.730 & 0.707 & 0.758 \\
+VIRENet & 0.613 & 0.807 & 0.933 & 0.765 & 0.680 \\\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[!t]
+\caption{Per-fold RR mean-absolute-error (breaths/min), all methods.}
+\label{tab:s3}\centering\small
+\begin{tabular}{@{}lccccc@{}}\toprule
+Method & Fold 0 & Fold 1 & Fold 2 & Fold 3 & Fold 4\\\midrule
+PRISM-Breath & 8.20 & 5.54 & 5.16 & 6.85 & 5.18 \\
+EfficientPhys & 7.66 & 5.38 & 5.82 & 6.14 & 5.51 \\
+DeepPhys & 7.54 & 4.17 & 5.46 & 5.74 & 5.12 \\
+TS-CAN & 8.36 & 4.26 & 5.81 & 6.98 & 5.34 \\
+VIRENet & 8.53 & 4.13 & 4.11 & 6.89 & 5.94 \\\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent\textit{Note on the MAE/AUROC dissociation.} In Table~\ref{tab:s3} the baselines are competitive
+on per-fold MAE (indeed VIRENet is best on Folds~1--2), yet in Table~\ref{tab:s2} PRISM leads on AUROC in
+every fold. This fold-level view reinforces the main-paper thesis: lower regression error does not imply
+better tachypnea discrimination.
+
+\section{Extended Design-Variant Ablation}
+Table~\ref{tab:s4} lists additional variants beyond the main-paper ablation, evaluated under the identical
+pooled five-fold protocol on all 332 subjects. Frequency-forward fusion, heteroscedastic/synthetic
+adapters, and a compact AirFlow head neither help nor hurt materially; the hand-crafted optical-flow
+channel (``v3'') is competitive in-domain but collapses out-of-domain (main paper, Table~VI). Among
+sequence backbones, PRISM's reliability-weighted fusion significantly outperforms a Mamba-style
+state-space fusion and is statistically comparable to a CliffPhys-style backbone.
+
+\begin{table}[!t]
+\caption{Extended design variants (pooled five-fold, 332 subjects). DeLong $p$ is vs.\ full PRISM
+(AUROC 0.879); ``n.s.'' $=$ not significant.}
+\label{tab:s4}\centering\small
+\begin{tabular}{@{}lccc@{}}\toprule
+Variant & RR-MAE & AUROC & DeLong $p$ vs.\ PRISM\\\midrule
+PRISM-Breath (full) & 6.19 & 0.879 & --- \\
+Flow-only (depth/audio off) & 6.07 & 0.860 & n.s. \\
+Frequency-forward fusion & 6.35 & 0.855 & n.s. \\
+Heteroscedastic $+$ synthetic & 6.23 & 0.888 & n.s. \\
+Hand-crafted flow (v3) & 6.20 & 0.861 & n.s. \\
+AirFlow-compact head & 6.54 & 0.844 & n.s. \\\midrule
+Mamba-fusion backbone & 7.55 & 0.811 & $0.002$ \\
+CliffPhys-style backbone & 6.53 & 0.853 & $0.090$ (n.s.) \\\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Hyperparameters}
+Tables~\ref{tab:s5}--\ref{tab:s6} report the exact settings used. PRISM-Breath is a compact model
+($d_{\text{model}}=64$, sequence length $300$); the headline operating points are averaged over three
+seeds ($42,52,62$).
+
+\begin{table}[!t]
+\caption{PRISM-Breath model and supervised-training hyperparameters.}
+\label{tab:s5}\centering\small
+\begin{tabular}{@{}ll@{}}\toprule
+Hyperparameter & Value\\\midrule
+Model dimension $d_{\text{model}}$ & 64 \\
+Sequence length (samples) & 300 \\
+Codebook size / prototype bank & 12 / 6 \\
+Domain adapter sources & 8 \\
+Prototype / codebook temperature & 0.35 / 0.30 \\
+Optimizer & Adam \\
+Learning rate & $1{\times}10^{-3}$ \\
+Weight decay & $1{\times}10^{-4}$ \\
+Batch size & 16 \\
+Max epochs / selection & 100 / best-validation checkpoint \\
+Motion-artifact injection prob. & 0.20 \\
+Seeds (three-seed average) & 42, 52, 62 \\
+Respiratory band (fusion) & 0.15--1.5 Hz \\
+Sampling rate (common time base) & 25 Hz \\\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[!t]
+\caption{Extractor, self-supervised pretraining, and conformal-calibration settings.}
+\label{tab:s6}\centering\small
+\begin{tabular}{@{}ll@{}}\toprule
+Component / Hyperparameter & Value\\\midrule
+\multicolumn{2}{@{}l}{\emph{Learned optical-flow extractor (EfficientPhys $+$ Coarse-to-Fine)}}\\
+\quad Epochs / batch / infer-batch & 15 / 4 / 8 \\
+\quad Learning rate / seed & $1{\times}10^{-3}$ / 100 \\
+\quad Loss & PSD-MSE (power-spectral) \\
+\quad Supervision band & 0.20--1.70 Hz (widened for high RR) \\
+\quad Per-video frame rate & native (cv2), resampled to 25 Hz \\\midrule
+\multicolumn{2}{@{}l}{\emph{Self-supervised pretraining}}\\
+\quad Objective & masked-signal modeling $+$ contrastive \\
+\quad Mask ratio & 0.50 \\
+\quad Epochs / batch / lr & 100 / 16 / $1{\times}10^{-3}$ \\\midrule
+\multicolumn{2}{@{}l}{\emph{Conformal triage}}\\
+\quad Scheme & Mondrian (age-conditional) \\
+\quad Target miscoverage $\alpha$ & 0.20 \\
+\quad Nonconformity score & absolute residual $|\hat r - r|$ \\\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Implementation and Reproducibility}
+\textbf{Environment.} PyTorch 2.8 (CUDA 12.9), Python 3.13, single NVIDIA Quadro RTX~8000. Depth from
+Depth-Anything-V2; optical flow from a body-ROI EfficientPhys$+$Coarse-to-Fine extractor vendored from the
+AIR-400 codebase.
+
+\textbf{Cross-validation.} Five subject-disjoint folds with deterministic SHA-256 subject hashing; the
+same fold assignment is reused for PRISM and every ablation. Published extractors are trained/evaluated on
+the 298 subjects cached for all methods, giving a paired comparison; PRISM's own five-fold spans all 332.
+
+\textbf{Training budget and convergence.} PRISM-Breath and \emph{all} ablations/variants share an
+identical budget: a 100-epoch cap with best-validation-checkpoint selection (self-supervised pretraining
+likewise runs 100 epochs). Across folds the \emph{selected} epoch is 65--100 on a validation plateau that
+begins near epoch~30 (e.g., fold~0 selection score $9.9$ at epoch~10, $6.2$ at epoch~30, $5.1$ at the
+selected epoch~65), indicating convergence rather than truncation; the ablation comparison is therefore
+budget-matched. The published extractors are full video CNNs trained with best-validation selection under
+their standard 15-epoch schedule (each fold $\approx$2\,h). Because a video-CNN epoch and a
+300-sample-head epoch are not equal units of compute, every method is selected by its best validation
+checkpoint rather than a fixed epoch count; a matched-epoch retraining of the baselines is a useful
+robustness check but was not compute-feasible for all four ($\approx$11 GPU-days at 100 epochs).
+
+\textbf{Statistics.} AUROC differences use the paired fast-DeLong test (Sun \& Xu); the binary tachypnea
+decision uses the exact McNemar test on discordant pairs; confidence intervals are subject-level bootstrap
+($10^{4}$ resamples). Calibration uses expected calibration error and the Brier score; clinical usefulness
+uses decision-curve net benefit.
+
+\textbf{Provenance.} Each prediction file follows a \texttt{\{dataset\}\_\{subject\}\_\{video\}}
+contract, enabling the exact per-fold reconstruction in Tables~\ref{tab:s1}--\ref{tab:s3}. A known
+extractor-leakage pitfall (cross-fold caching of a flow backbone) was identified and excluded; the
+leakage-free numbers are the ones reported.
+
+\end{document}

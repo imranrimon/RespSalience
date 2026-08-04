@@ -219,7 +219,9 @@ all $332$. We report RR-MAE and, on the clinical endpoint, sensitivity/specifici
 subject-level bootstrap $95\%$ confidence intervals~\cite{efron_bootstrap}; paired comparisons use
 DeLong~\cite{delong} for AUROC and exact McNemar for the binary decision. Calibration is reported as
 expected calibration error (ECE) and Brier score~\cite{brier}, and clinical usefulness by decision-curve
-analysis~\cite{vickers_dca}. Headline operating points are averaged over three seeds.
+analysis~\cite{vickers_dca}. Headline operating points are averaged over three seeds. PRISM and all ablations share a matched training
+budget (100-epoch cap with best-validation-checkpoint selection); every method, including the published
+extractors, is selected by its best validation checkpoint (see Supplementary Sec.~S4).
 
 \begin{table}[!t]\caption{Datasets.}\label{tab:data}\centering\small
 \begin{tabular}{@{}llll@{}}\toprule
