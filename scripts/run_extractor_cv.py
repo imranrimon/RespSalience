@@ -75,12 +75,14 @@ def main():
     import logging
     ap = argparse.ArgumentParser()
     ap.add_argument("--model-name", required=True, choices=["DeepPhys", "TSCAN", "VIRENet", "EfficientPhys"])
+    ap.add_argument("--epochs", type=int, default=None, help="override FULL_DEFAULTS epochs (matched-budget check)")
+    ap.add_argument("--tag", default="", help="suffix for output dir, e.g. _100ep")
     args = ap.parse_args()
     logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
     logger = logging.getLogger("extractor_cv")
     T.air_main.set_random_seeds(100)
     combined_manifest, _bs, _sg = T.build_combined_manifest(False)
-    OUT = ROOT / "outputs" / "paper_runs" / f"pedrr_kfold_{args.model_name.lower()}"
+    OUT = ROOT / "outputs" / "paper_runs" / f"pedrr_kfold_{args.model_name.lower()}{args.tag}"
     OUT.mkdir(parents=True, exist_ok=True)
     cached = cached_subjects()
     print(f"[extractor_cv] model={args.model_name}  cached_subjects={len(cached)}", flush=True)
@@ -96,6 +98,8 @@ def main():
         ss = {"train": [str(r["subject_id"]) for r in tr], "val": [str(r["subject_id"]) for r in va],
               "test": [str(r["subject_id"]) for r in te]}
         p = dict(T.FULL_DEFAULTS); p["train_limit"] = 0; p["val_limit"] = 0; p["test_limit"] = 0
+        if args.epochs:
+            p["epochs"] = int(args.epochs)
         config = T.build_config(p, combined_manifest, ss, CACHE, str(fd / "run"), f"{args.model_name}_fold{k}")
         config["MODEL"]["NAME"] = args.model_name
         T.air_main.listify_datasets(config)

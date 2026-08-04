@@ -42,7 +42,10 @@ extractors match or beat PRISM on RR-MAE yet are all significantly worse on tach
 (AUROC $0.869$ vs.\ $0.727$--$0.752$; DeLong $p\le0.0016$)---raw MAE is not clinical utility. An
 ablation localizes the advantage to self-supervised pretraining and spectral/temporal encoding; a
 \emph{lean} model that drops a prototype bank, a codebook, and a heteroscedastic head performs
-identically. RGB optical flow physically saturates near $35$~breaths/min for true neonatal rates of
+identically. Strikingly, a plain logistic regression on the extracted per-modality features matches the
+deep model (AUROC $0.894$, n.s.), localizing the clinical signal to signal \emph{extraction} rather than
+fusion architecture and yielding a simple, calibratable deployable classifier. RGB optical flow
+physically saturates near $35$~breaths/min for true neonatal rates of
 $60$--$80$, so every camera extractor misses neonatal tachypnea; we therefore report a calibrated screen
 for infants $\ge$2~months (sensitivity $0.71$, AUROC $0.919$, expected calibration error $0.064$,
 positive net benefit) with mandatory neonatal referral. Radar recovers the neonatal band that RGB
@@ -89,15 +92,17 @@ recovers the band that RGB cannot.
 \item A \emph{metric critique with evidence}: on 298 matched subjects, four published extractors lose to
 PRISM-Breath on tachypnea AUROC ($0.727$--$0.752$ vs.\ $0.869$; DeLong $p\le0.0016$) despite comparable
 or better RR-MAE (Section~\ref{sec:sota}).
-\item \emph{PRISM-Breath and a lean model}: a reliability-weighted multimodal architecture whose clinical
-advantage we attribute by ablation to self-supervised pretraining and spectral/temporal encoding, and a
-\emph{lean} variant that matches it while dropping three decorative modules (Section~\ref{sec:abl}).
+\item \emph{Simplicity suffices}: a reliability-weighted multimodal architecture, its lean variant, and---%
+critically---a plain logistic regression on the extracted features all reach AUROC $\approx$0.88, whereas
+published extractors reach only $0.73$--$0.75$. The clinical signal lives in the extracted flow, not the
+fusion architecture, so we recommend a simple calibrated classifier for deployment
+(Sections~\ref{sec:abl},~\ref{sec:simple}).
 \item \emph{An honest, calibrated $\ge$2mo screen}: sensitivity $0.71$, AUROC $0.919$, expected
 calibration error $0.064$, and positive net benefit on decision-curve analysis, with a documented
 neonatal-referral policy (Sections~\ref{sec:age},~\ref{sec:calib}).
-\item \emph{A radar path to the neonate}: radar recovers the neonatal band on a phantom (MAE $0.00$) and
-on $50$ real children (MAE $1.76$, $r{=}0.96$), establishing a sensing-modality route to the group RGB
-cannot see (Section~\ref{sec:radar}).
+\item \emph{A preliminary radar path to the neonate}: on a phantom (MAE $0.00$) and $50$ real children
+(MAE $1.76$, $r{=}0.96$), radar recovers the neonatal band RGB cannot see---a motivating result on
+\emph{separate} cohorts, not yet an integrated device (Section~\ref{sec:radar}).
 \end{enumerate}
 Throughout, we use subject-disjoint five-fold cross-validation, subject-level bootstrap $95\%$ confidence
 intervals~\cite{efron_bootstrap}, and paired DeLong~\cite{delong} and McNemar tests, and we report the
@@ -254,8 +259,30 @@ decision is a matter of operating-point selection we leave to deployment (Sectio
 Evaluated within our framework on all $332$ subjects, PRISM's reliability-weighted fusion
 (AUROC $0.879$) significantly beats a Mamba-style state-space fusion backbone~\cite{mamba_gu}
 ($0.811$; DeLong $p=0.0023$; MAE $7.55$) and is statistically comparable to a CliffPhys-style backbone
-($0.853$; $p=0.090$; MAE $6.53$). The clinical advantage is therefore in the fusion and training recipe,
-not merely the sequence encoder.
+($0.853$; $p=0.090$; MAE $6.53$). But as Section~\ref{sec:simple} shows, the advantage is not in the deep
+head at all---it is in the extracted signal and the training recipe, not the sequence encoder or fusion
+depth.
+
+\subsection{A simple classifier matches the deep model}\label{sec:simple}
+Table~\ref{tab:simple} asks whether the deep fusion head is necessary. Using the identical folds and the
+per-modality extracted features (RR, quality, disagreement, age), a plain logistic regression matches
+PRISM (AUROC $0.894$ vs.\ $0.879$; DeLong $p=0.23$), and even the trivial rule ``flow-RR minus threshold''
+matches it ($0.873$; $p=0.15$); gradient boosting overfits ($0.831$). Because PRISM's extracted flow-RR
+alone discriminates at $0.873$ while the published extractors' own RR reaches only $0.727$--$0.752$
+(Table~\ref{tab:sota}), the clinical advantage is attributable to \emph{signal extraction}, not the
+fusion architecture or the choice of downstream classifier. We therefore recommend a simple, calibratable
+logistic regression as the deployable model; the deep model serves as an upper-bound reference and the
+source of the reliability features.
+
+\begin{table}[!t]\caption{A simple classifier on the extracted features matches the deep model (identical
+subject-disjoint folds, 332 subjects). DeLong $p$ is vs.\ PRISM.}\label{tab:simple}\centering\small
+\begin{tabular}{@{}lcc@{}}\toprule
+Model on extracted features & AUROC & DeLong $p$ vs.\ PRISM\\\midrule
+PRISM-Breath (deep fusion head) & 0.879 & ---\\
+\textbf{Logistic regression} & \textbf{0.894} & 0.23 (n.s.)\\
+Trivial ``flow-RR $-$ threshold'' rule & 0.873 & 0.15 (n.s.)\\
+Gradient boosting & 0.831 & 0.01 (worse)\\\bottomrule
+\end{tabular}\end{table}
 
 \subsection{Age bands and the neonatal limit}\label{sec:age}
 Table~\ref{tab:clin} and Fig.~\ref{fig:ageband} break performance down by WHO band. For the neonatal
@@ -296,7 +323,11 @@ channel (Table~\ref{tab:radar}).
 
 \subsection{Calibration, decision curve, and equity}\label{sec:calib}
 PRISM is well-calibrated (ECE $0.064$, Brier $0.110$) and, on decision-curve analysis, its net benefit
-exceeds both treat-all and treat-none at every threshold (Fig.~\ref{fig:calib}). We find no significant
+exceeds both treat-all and treat-none at every threshold (Fig.~\ref{fig:calib}). At a fixed specificity of
+$0.90$ the screen retains sensitivity $0.70$; positive predictive value is $0.73$ on this cohort
+(prevalence $0.26$) but falls to $0.46$ at a community prevalence of $0.10$, while negative predictive
+value stays high ($0.96$)---the screen rules out better than it rules in at low prevalence. We find no
+significant
 sex disparity (male AUROC $0.890$ vs.\ female $0.871$; MAE gap n.s.). Finally, on the cohort's own
 clinical sign (observed difficulty breathing), true RR is only weakly predictive (AUROC $0.59$) and
 estimated RR weaker still ($0.54$)---an honest reminder that tachypnea is a screening sign, not a disease
@@ -310,6 +341,15 @@ weakens this point: AUROC captures the separability the extractors lack, while t
 decision is dominated by the shared difficulty of the cohort near the boundary; the practical implication
 is that deployment should tune the operating point (e.g., to a target sensitivity) and re-estimate the
 decision-level benefit prospectively.
+
+\textbf{Simplicity over architecture.} Our ablation, the lean model, and a logistic-regression baseline
+(Section~\ref{sec:simple}) converge on one conclusion: the deep fusion apparatus is not what delivers the
+clinical performance---a calibrated linear model on the extracted per-modality features is statistically
+indistinguishable from the full network. The advantage instead comes from the flow-extraction pipeline,
+whose RR is far more discriminative than the published extractors' ($0.873$ vs.\ $0.727$--$0.752$ under a
+trivial threshold rule). For a low-resource screening tool this is welcome: the deployable model can be a
+transparent, easily calibrated classifier, and research effort is better spent on extraction quality than
+on fusion complexity.
 
 \textbf{Clinical translation.} A sensitivity of $0.71$ for the $\ge$2mo screen is not a stand-alone
 diagnosis; it is a triage signal that, combined with mandatory neonatal referral and calibrated
@@ -331,7 +371,12 @@ site and a physiological reference (capnography or respiratory-inductance plethy
 (ii) Skin-tone equity is not auditable in a single-population cohort, a documented risk for optical
 methods~\cite{nowara_skintone}. (iii) Tachypnea is a weak proxy for disease (AUROC $0.59$ for difficulty
 breathing). (iv) The radar arm is validated on a phantom and on real children, but not yet on real
-neonates. These define a prospective, outcome-anchored, multi-modal study.
+neonates. (v)~We benchmark against WHO manual breath counting, itself subject to inter-rater error of
+several breaths/min, which likely caps achievable discrimination near the threshold and contributes to the
+non-significant McNemar result; separately, a small number ($15$) of validation signals in an earlier
+pipeline used a hand-crafted extractor, affecting only checkpoint selection---all reported \emph{test}
+metrics use the learned extractor on held-out folds. These define a prospective, outcome-anchored,
+multi-modal study.
 
 \section{Conclusion}
 PRISM-Breath is a calibrated, ablation-justified, non-contact tachypnea screen for infants
