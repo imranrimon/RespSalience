@@ -42,9 +42,10 @@ extractors match or beat PRISM on RR-MAE yet are all significantly worse on tach
 (AUROC $0.869$ vs.\ $0.727$--$0.752$; DeLong $p\le0.0016$)---raw MAE is not clinical utility. An
 ablation localizes the advantage to self-supervised pretraining and spectral/temporal encoding; a
 \emph{lean} model that drops a prototype bank, a codebook, and a heteroscedastic head performs
-identically. Strikingly, a plain logistic regression on the extracted per-modality features matches the
-deep model (AUROC $0.894$, n.s.), localizing the clinical signal to signal \emph{extraction} rather than
-fusion architecture and yielding a simple, calibratable deployable classifier. RGB optical flow
+identically. A component isolation instead localizes the performance to the per-modality \emph{encoder}: the raw
+extracted flow discriminates tachypnea at only AUROC $0.72$ (FFT), a self-supervised spectral-temporal
+encoder lifts this to $0.87$ ($p<10^{-4}$), and the deep fusion head adds nothing ($0.88$; a logistic
+regression on the encoder outputs matches it). RGB optical flow
 physically saturates near $35$~breaths/min for true neonatal rates of
 $60$--$80$, so every camera extractor misses neonatal tachypnea; we therefore report a calibrated screen
 for infants $\ge$2~months (sensitivity $0.71$, AUROC $0.919$, expected calibration error $0.064$,
@@ -92,11 +93,11 @@ recovers the band that RGB cannot.
 \item A \emph{metric critique with evidence}: on 298 matched subjects, four published extractors lose to
 PRISM-Breath on tachypnea AUROC ($0.727$--$0.752$ vs.\ $0.869$; DeLong $p\le0.0016$) despite comparable
 or better RR-MAE (Section~\ref{sec:sota}).
-\item \emph{Simplicity suffices}: a reliability-weighted multimodal architecture, its lean variant, and---%
-critically---a plain logistic regression on the extracted features all reach AUROC $\approx$0.88, whereas
-published extractors reach only $0.73$--$0.75$. The clinical signal lives in the extracted flow, not the
-fusion architecture, so we recommend a simple calibrated classifier for deployment
-(Sections~\ref{sec:abl},~\ref{sec:simple}).
+\item \emph{A component isolation of where the signal comes from}: the raw extracted flow discriminates
+tachypnea at only AUROC $0.72$, a self-supervised spectral-temporal \emph{encoder} lifts it to $0.87$
+($p<10^{-4}$), and the deep fusion head adds nothing ($0.88$; a logistic regression on the encoder outputs
+matches it). The learned encoder---not the extraction, not the fusion architecture---is the load-bearing
+component (Sections~\ref{sec:abl},~\ref{sec:simple}).
 \item \emph{An honest, calibrated $\ge$2mo screen}: sensitivity $0.71$, AUROC $0.919$, expected
 calibration error $0.064$, and positive net benefit on decision-curve analysis, with a documented
 neonatal-referral policy (Sections~\ref{sec:age},~\ref{sec:calib}).
@@ -263,25 +264,29 @@ Evaluated within our framework on all $332$ subjects, PRISM's reliability-weight
 head at all---it is in the extracted signal and the training recipe, not the sequence encoder or fusion
 depth.
 
-\subsection{A simple classifier matches the deep model}\label{sec:simple}
-Table~\ref{tab:simple} asks whether the deep fusion head is necessary. Using the identical folds and the
-per-modality extracted features (RR, quality, disagreement, age), a plain logistic regression matches
-PRISM (AUROC $0.894$ vs.\ $0.879$; DeLong $p=0.23$), and even the trivial rule ``flow-RR minus threshold''
-matches it ($0.873$; $p=0.15$); gradient boosting overfits ($0.831$). Because PRISM's extracted flow-RR
-alone discriminates at $0.873$ while the published extractors' own RR reaches only $0.727$--$0.752$
-(Table~\ref{tab:sota}), the clinical advantage is attributable to \emph{signal extraction}, not the
-fusion architecture or the choice of downstream classifier. We therefore recommend a simple, calibratable
-logistic regression as the deployable model; the deep model serves as an upper-bound reference and the
-source of the reliability features.
+\subsection{Where the performance comes from: a component isolation}\label{sec:simple}
+Table~\ref{tab:simple} isolates the source of the clinical signal, evaluating each stage on the same
+subject-disjoint folds. The \emph{raw} extracted flow, read out by a plain FFT with no learned encoder,
+discriminates tachypnea at only AUROC $0.723$ (stable across band choices)---no better than the end-to-end
+EfficientPhys baseline ($0.745$). PRISM's compact per-modality encoder (spectral features, a temporal scan
+block, and self-supervised pretraining) lifts this to $0.873$ (paired DeLong $p<10^{-4}$): this is where
+the performance is created. The deep fusion head then adds nothing ($0.879$); a plain logistic regression
+on the encoder's per-modality outputs matches it ($0.894$; $p=0.23$), and even a linear rule on the single
+encoded flow-RR reaches $0.873$. The clinical advantage is thus attributable to the \emph{learned
+per-modality encoder}---not the raw extraction (mediocre) and not the fusion architecture (unnecessary),
+consistent with the ablation (Table~\ref{tab:abl}). The parsimonious deployable model is therefore
+extractor~$\rightarrow$~compact encoder~$\rightarrow$~linear readout.
 
-\begin{table}[!t]\caption{A simple classifier on the extracted features matches the deep model (identical
-subject-disjoint folds, 332 subjects). DeLong $p$ is vs.\ PRISM.}\label{tab:simple}\centering\small
+\begin{table}[!t]\caption{Component isolation: tachypnea AUROC by pipeline stage on identical
+subject-disjoint folds (332 subjects). The learned \emph{encoder}---not the raw extraction and not the
+fusion head---creates the clinical signal.}\label{tab:simple}\centering\small
 \begin{tabular}{@{}lcc@{}}\toprule
-Model on extracted features & AUROC & DeLong $p$ vs.\ PRISM\\\midrule
-PRISM-Breath (deep fusion head) & 0.879 & ---\\
-\textbf{Logistic regression} & \textbf{0.894} & 0.23 (n.s.)\\
-Trivial ``flow-RR $-$ threshold'' rule & 0.873 & 0.15 (n.s.)\\
-Gradient boosting & 0.831 & 0.01 (worse)\\\bottomrule
+Pipeline stage & AUROC & $\Delta$ / test\\\midrule
+Raw flow, FFT (no encoder) & 0.723 & $\approx$ raw extraction\\
+Baseline EfficientPhys (end-to-end) & 0.745 & published\\
+$+$ per-modality encoder (SSL, spectral, scan) & \textbf{0.873} & $+0.15$, DeLong $p{<}10^{-4}$\\
+$+$ deep fusion head (full PRISM) & 0.879 & $+0.006$, n.s.\\
+Logistic regression on encoder outputs & 0.894 & n.s.\ vs.\ head\\\bottomrule
 \end{tabular}\end{table}
 
 \subsection{Age bands and the neonatal limit}\label{sec:age}
@@ -342,14 +347,15 @@ decision is dominated by the shared difficulty of the cohort near the boundary; 
 is that deployment should tune the operating point (e.g., to a target sensitivity) and re-estimate the
 decision-level benefit prospectively.
 
-\textbf{Simplicity over architecture.} Our ablation, the lean model, and a logistic-regression baseline
-(Section~\ref{sec:simple}) converge on one conclusion: the deep fusion apparatus is not what delivers the
-clinical performance---a calibrated linear model on the extracted per-modality features is statistically
-indistinguishable from the full network. The advantage instead comes from the flow-extraction pipeline,
-whose RR is far more discriminative than the published extractors' ($0.873$ vs.\ $0.727$--$0.752$ under a
-trivial threshold rule). For a low-resource screening tool this is welcome: the deployable model can be a
-transparent, easily calibrated classifier, and research effort is better spent on extraction quality than
-on fusion complexity.
+\textbf{What actually matters.} A component isolation (Section~\ref{sec:simple}) locates the clinical
+performance precisely. It is \emph{not} the raw extraction: the learned flow, read out by FFT, discriminates
+tachypnea at only $0.72$, no better than an end-to-end video CNN. It is \emph{not} the deep fusion head: a
+calibrated linear model on the encoder's per-modality outputs is statistically indistinguishable from the
+full network. It \emph{is} the compact, self-supervised spectral-temporal encoder, which lifts the raw
+signal from $0.72$ to $0.87$ ($p<10^{-4}$) and is exactly what the ablation flags as load-bearing. For a
+low-resource setting this is an actionable design rule: invest in the per-modality encoder and pretraining,
+keep the readout linear and calibratable, and do not add fusion machinery that a logistic regression
+already subsumes.
 
 \textbf{Clinical translation.} A sensitivity of $0.71$ for the $\ge$2mo screen is not a stand-alone
 diagnosis; it is a triage signal that, combined with mandatory neonatal referral and calibrated
