@@ -17,8 +17,8 @@
 
 \begin{document}
 
-\title{Raw Respiratory-Rate Error Is Not Clinical Utility: A Calibrated, Reliability-Weighted
-Non-Contact Screen for Infant Tachypnea, with a Radar Path to the Neonate}
+\title{Raw Respiratory-Rate Error Is Not Clinical Utility: Reframing Non-Contact Infant Tachypnea
+Screening as Signal Classification}
 
 \author{Imran~Rimon%
 \thanks{Manuscript prepared \today. The author is with West Virginia University, Morgantown, WV, USA
@@ -310,7 +310,8 @@ Logistic regression on encoder outputs & 0.894 & n.s.\ vs.\ head\\\bottomrule
 
 \subsection{The clinical task is classification, not regression}\label{sec:framing}
 Sections~\ref{sec:sota}--\ref{sec:simple} operate within the prevailing paradigm---estimate a rate, then
-threshold. Table~\ref{tab:framing} shows that abandoning it is the single largest gain in this paper.
+threshold. Table~\ref{tab:framing} and Fig.~\ref{fig:isolation} show that abandoning it is the single largest gain in
+this paper.
 Reframing tachypnea as \emph{classification of the raw respiratory signal} (RespSalience,
 Sec.~\ref{sec:respsal}) raises AUROC from $0.879$ (regression, full PRISM) to $0.925$ (DeLong $p=0.022$).
 The gain is \emph{architecture-agnostic}: a purpose-built salience network ($0.925$), the same network
@@ -348,6 +349,13 @@ Paradigm & Model & AUROC & $p$ vs.\ PRISM\\\midrule
 while rate regression (red) saturates at the $\sim$35~breaths/min ceiling. (b) Per-age-band tachypnea
 AUROC: the classifier recovers neonatal ($<$2mo) discrimination that regression loses ($95\%$
 CIs).}\label{fig:salience}
+\end{figure}
+
+\begin{figure}[!t]\centering
+\includegraphics[width=3.4in]{fig9_isolation.pdf}
+\caption{Where the performance comes from. Within rate regression (grey), the learned encoder is the main
+gain (raw FFT $0.72$ to encoder $0.87$) and the fusion head is inert; switching to classification (blue)---
+ROCKET, salience, salience$+$SSL---is a further, model-agnostic jump.}\label{fig:isolation}
 \end{figure}
 
 \subsection{Age bands and the neonatal limit}\label{sec:age}
@@ -489,8 +497,9 @@ them.}\label{fig:abl}
 
 \begin{figure}[!t]\centering
 \includegraphics[width=3.0in]{fig5_calibration.pdf}
-\caption{(a) Reliability diagram (ECE $0.064$, Brier $0.110$). (b) Decision-curve analysis: PRISM net
-benefit exceeds treat-all/treat-none at every threshold.}\label{fig:calib}
+\caption{(a) Reliability diagram for the salience screen (ECE $0.053$, Brier $0.092$)---calibrated without
+post-hoc adjustment. (b) Decision-curve analysis: its net benefit exceeds treat-all and treat-none at every
+threshold.}\label{fig:calib}
 \end{figure}
 
 % ---------------- Tables ----------------
