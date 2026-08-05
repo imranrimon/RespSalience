@@ -159,9 +159,11 @@ expert video panels for pneumonia, but skin-tone and demographic bias remain a d
 optical methods~\cite{nowara_skintone}, which we discuss as a limitation.
 
 \section{Method}
-Fig.~\ref{fig:arch} shows the pipeline. Three modality signals are encoded, weighted by their estimated
-reliability, fused, and mapped to an RR estimate and a calibrated tachypnea probability with an
-age-conditional conformal interval; a parallel radar path serves the neonatal band.
+Our contribution is a \emph{reframing}: rather than regress a respiratory rate and threshold it, we cast
+tachypnea as classification of the respiratory signal (Sec.~\ref{sec:respsal}). Fig.~\ref{fig:arch} shows
+the two stages---a shared signal front end followed by a salience classifier---alongside the strong
+regression baseline (PRISM-Breath) against which we measure the gain, an age-conditional conformal triage
+rule, and a supporting radar path for the neonatal band.
 
 \subsection{Signal extraction}
 Per video we extract (i) a monocular-depth respiration proxy from Depth-Anything-V2~\cite{yang_depthanythingv2},
@@ -170,27 +172,24 @@ extractor~\cite{liu_efficientphys}, and (iii) an audio spectrogram. Signals are 
 $25$~Hz common time base (a step whose absence we found inflates error) and band-limited to the
 respiratory band $0.15$--$1.5$~Hz ($9$--$90$~breaths/min).
 
-\subsection{Per-modality encoders and self-supervised pretraining}
-Each modality $m$ is encoded by a branch $f_m$ with explicit spectral features and a temporal ``scan''
-block, using separate trunks. Encoders are initialized by self-supervised pretraining (masked-signal
-modeling and contrastive objectives) on unlabeled signals, which the ablation shows is the single most
-important component.
-
-\subsection{Reliability-weighted fusion}
-Let $\hat r_m$ be the branch RR estimate and $q_m$ a learned quality score. We form a reliability weight
-that multiplies quality, temporal support $s_m$, an inverse scale, and a respiratory-band signal-to-noise
-ratio $\mathrm{SNR}_m$ (band power over total power):
+\subsection{PRISM-Breath: the strong regression baseline}\label{sec:prism}
+The regression baseline we improve upon is a reliability-weighted multimodal network. Each modality $m$ is
+encoded by a branch with explicit spectral features, a temporal ``scan'' block, and separate trunks,
+initialized by self-supervised (masked-signal / contrastive) pretraining, producing a rate estimate
+$\hat r_m$ and a learned quality $q_m$. A fusion stage combines the branches by a reliability weight that
+multiplies quality, temporal support $s_m$, an inverse scale $\sigma_m$, and a respiratory-band
+signal-to-noise ratio, with inter-branch agreement downweighting outliers:
 \begin{equation}
 w_m \;\propto\; q_m \cdot \frac{s_m}{\sigma_m}\cdot \mathrm{SNR}_m,\qquad
 \hat r \;=\; \sum_m \frac{w_m}{\sum_{m'} w_{m'}}\,\hat r_m .
 \end{equation}
-Agreement between branches further downweights outliers, so a single corrupted modality cannot dominate.
-
-\subsection{Heads and training objective}
-A regression head outputs $\hat r$; a tachypnea head outputs a probability $\hat p$ trained with a
-binary objective against the WHO age-band label. The composite loss combines RR regression, the
-tachypnea term, and the self-supervised auxiliary terms. WHO thresholds are applied as a differentiable,
-age-indexed function shared with the diagnosis module.
+Regression and tachypnea heads output $\hat r$ and a probability against the WHO age-band label. Two
+internal analyses shape this design: a load-bearing audit (Sec.~\ref{sec:abl}) shows a prototype bank, a
+clean-breathing codebook, and a heteroscedastic head are inert, so a \emph{lean} variant that removes them
+is equivalent; and a component isolation (Sec.~\ref{sec:simple}) shows the per-modality \emph{encoder}, not
+the fusion, carries the regression performance. PRISM is a genuinely strong baseline---it beats published
+extractors on the clinical endpoint (Sec.~\ref{sec:sota})---but as a regressor it remains bounded by the
+neonatal ceiling that our classification reframing (Sec.~\ref{sec:respsal}) removes.
 
 \subsection{Age-conditional conformal triage}
 A single pooled conformal interval mis-covers by age because RGB reliability collapses for neonates.
@@ -202,11 +201,6 @@ uninformatively wide, which we operationalize as \emph{defer to clinician}.
 For the neonatal band we process FMCW in-phase/quadrature signals~\cite{li_radar_tmtt}: the chest-range-bin
 phase $\phi(t)=\arg(I+jQ)$ is unwrapped, band-passed to $0.1$--$1.7$~Hz, and its dominant spectral peak
 gives RR. We apply the identical estimator to a validated clinical reference on real children.
-
-\subsection{The lean model}
-A load-bearing audit (Section~\ref{sec:abl}) shows a prototype evidence bank, a clean-breathing codebook,
-and a heteroscedastic head contribute nothing to the clinical endpoint. We therefore define
-\textbf{PRISM-Breath-Lean}, which removes them; it matches the full model.
 
 \subsection{RespSalience: respiratory rate as pitch salience}\label{sec:respsal}
 Our analysis (Sec.~\ref{sec:framing}) shows the dominant clinical gain comes not from any component above
@@ -222,10 +216,12 @@ and self-supervised (masked-signal) pretraining. This is the model we recommend 
 
 \begin{figure*}[!t]\centering
 \includegraphics[width=6.9in]{fig6_architecture.pdf}
-\caption{PRISM-Breath. Three modality signals are encoded (spectral $+$ temporal scan, separate trunks,
-self-supervised initialization), weighted by estimated reliability, and fused into an RR estimate, a
-calibrated tachypnea probability, and an age-conditional conformal interval. A parallel FMCW-radar path
-serves the neonatal ($<$2mo) band that RGB cannot resolve.}\label{fig:arch}
+\caption{System overview. A shared front end extracts per-modality respiratory signals. \emph{Top
+(proposed):} RespSalience maps a signal to a salience distribution over a rate grid, from which the rate
+and a calibrated, ceiling-free tachypnea probability follow. \emph{Bottom (baseline):} PRISM-Breath encodes
+and reliability-weights the modalities into a regressed rate that is then thresholded. An age-conditional
+conformal rule defers neonates; a supporting FMCW-radar path recovers the neonatal band RGB cannot
+resolve.}\label{fig:arch}
 \end{figure*}
 
 \section{Datasets and Experimental Setup}
@@ -338,7 +334,7 @@ Paradigm & Model & AUROC & $p$ vs.\ PRISM\\\midrule
 \multirow{3}{*}{Regression $\to$ threshold} & Published extractors & 0.73--0.76 & ---\\
  & PRISM encoder (flow) & 0.873 & ---\\
  & Full PRISM (multimodal) & 0.879 & ref\\\midrule
-\multirow{3}{*}{\textbf{Classification (ours)}} & ROCKET (random kernels) & 0.915 & $0.03$\\
+\multirow{3}{*}{\textbf{Classification (ours)}} & ROCKET (random kernels) & 0.915 & $0.030$\\
  & \textbf{Salience network} & \textbf{0.925} & $\mathbf{0.022}$\\
  & Salience $+$ SSL pretrain & 0.930 & $0.013$\\\bottomrule
 \end{tabular}\end{table}
