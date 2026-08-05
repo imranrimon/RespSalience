@@ -438,7 +438,11 @@ domain~\cite{infant_air}; we reproduce comparable MAE ($2.93$ on AIR-400) but sh
 by itself deliver tachypnea discrimination on a clinical cohort, which is the quantity a screen needs.
 
 \textbf{Limitations.} (i) The clinical cohort is single-site with manual-count ground truth; a second
-site and a physiological reference (capnography or respiratory-inductance plethysmography) are needed.
+site and a physiological reference (capnography or respiratory-inductance plethysmography) are needed. In particular, the
+classification-framing gain and the neonatal recovery are demonstrated on the only available tachypnea
+cohort; the external infant sets (AIR-125/400) contain \emph{no} fast-breathing cases (RR $12$--$38$,
+all age $6$~months) and so cannot test them---an external pediatric cohort \emph{with} tachypnea is the
+single most important remaining validation.
 (ii) Skin-tone equity is not auditable in a single-population cohort, a documented risk for optical
 methods~\cite{nowara_skintone}. (iii) Tachypnea is a weak proxy for disease (AUROC $0.59$ for difficulty
 breathing). (iv) The radar arm is validated on a phantom and on real children, but not yet on real
