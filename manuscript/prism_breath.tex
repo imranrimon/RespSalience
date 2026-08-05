@@ -45,7 +45,10 @@ ablation localizes the advantage to self-supervised pretraining and spectral/tem
 identically. A component isolation instead localizes the performance to the per-modality \emph{encoder}: the raw
 extracted flow discriminates tachypnea at only AUROC $0.72$ (FFT), a self-supervised spectral-temporal
 encoder lifts this to $0.87$ ($p<10^{-4}$), and the deep fusion head adds nothing ($0.88$; a logistic
-regression on the encoder outputs matches it). RGB optical flow
+regression on the encoder outputs matches it). Going further, reframing the task as \emph{classification} of the
+signal rather than rate regression is the largest single gain---AUROC $0.92$--$0.93$, robust across a
+purpose-built salience network, its self-supervised variant, and a generic random-kernel classifier---and
+it recovers neonatal discrimination that regression loses ($0.62$ to $0.88$). RGB optical flow
 physically saturates near $35$~breaths/min for true neonatal rates of
 $60$--$80$, so every camera extractor misses neonatal tachypnea; we therefore report a calibrated screen
 for infants $\ge$2~months (sensitivity $0.71$, AUROC $0.919$, expected calibration error $0.064$,
@@ -98,6 +101,10 @@ tachypnea at only AUROC $0.72$, a self-supervised spectral-temporal \emph{encode
 ($p<10^{-4}$), and the deep fusion head adds nothing ($0.88$; a logistic regression on the encoder outputs
 matches it). The learned encoder---not the extraction, not the fusion architecture---is the load-bearing
 component (Sections~\ref{sec:abl},~\ref{sec:simple}).
+\item \emph{A reframing that is the largest gain}: casting tachypnea as signal \emph{classification}
+rather than rate regression raises AUROC to $0.92$--$0.93$ (from $0.879$), robustly across three unrelated
+classifiers, and recovers neonatal discrimination regression loses; we give a calibrated, ceiling-free
+salience realization (RespSalience, Sec.~\ref{sec:framing}).
 \item \emph{An honest, calibrated $\ge$2mo screen}: sensitivity $0.71$, AUROC $0.919$, expected
 calibration error $0.064$, and positive net benefit on decision-curve analysis, with a documented
 neonatal-referral policy (Sections~\ref{sec:age},~\ref{sec:calib}).
@@ -199,7 +206,19 @@ gives RR. We apply the identical estimator to a validated clinical reference on 
 \subsection{The lean model}
 A load-bearing audit (Section~\ref{sec:abl}) shows a prototype evidence bank, a clean-breathing codebook,
 and a heteroscedastic head contribute nothing to the clinical endpoint. We therefore define
-\textbf{PRISM-Breath-Lean}, which removes them; it matches the full model and is our shippable design.
+\textbf{PRISM-Breath-Lean}, which removes them; it matches the full model.
+
+\subsection{RespSalience: respiratory rate as pitch salience}\label{sec:respsal}
+Our analysis (Sec.~\ref{sec:framing}) shows the dominant clinical gain comes not from any component above
+but from abandoning rate \emph{regression} altogether. Following fundamental-frequency estimation in
+audio~\cite{crepe,spice}, we reframe the task: a compact one-dimensional network maps a modality signal to
+a \emph{salience} distribution $s(\cdot)$ over a grid of candidate rates ($6$--$90$~breaths/min,
+$0.5$~breaths/min spacing), trained with a Gaussian target centred at the true rate. The rate estimate is
+the salience-weighted expectation; the tachypnea probability is the salience mass above the age threshold,
+$\hat p = \sum_{r \ge \tau_{\text{age}}} s(r) / \sum_r s(r)$, a calibrated probability without post-hoc
+adjustment. Because the target is a distribution over rates rather than a regressed scalar, the
+formulation has \emph{no upper ceiling}; it optionally adds a learnable band-pass front-end~\cite{sincnet}
+and self-supervised (masked-signal) pretraining. This is the model we recommend for deployment.
 
 \begin{figure*}[!t]\centering
 \includegraphics[width=6.9in]{fig6_architecture.pdf}
@@ -288,6 +307,48 @@ $+$ per-modality encoder (SSL, spectral, scan) & \textbf{0.873} & $+0.15$, DeLon
 $+$ deep fusion head (full PRISM) & 0.879 & $+0.006$, n.s.\\
 Logistic regression on encoder outputs & 0.894 & n.s.\ vs.\ head\\\bottomrule
 \end{tabular}\end{table}
+
+\subsection{The clinical task is classification, not regression}\label{sec:framing}
+Sections~\ref{sec:sota}--\ref{sec:simple} operate within the prevailing paradigm---estimate a rate, then
+threshold. Table~\ref{tab:framing} shows that abandoning it is the single largest gain in this paper.
+Reframing tachypnea as \emph{classification of the raw respiratory signal} (RespSalience,
+Sec.~\ref{sec:respsal}) raises AUROC from $0.879$ (regression, full PRISM) to $0.925$ (DeLong $p=0.022$).
+The gain is \emph{architecture-agnostic}: a purpose-built salience network ($0.925$), the same network
+with self-supervised pretraining ($0.930$), and a generic random-convolution classifier
+(ROCKET~\cite{rocket}, $0.915$) are statistically indistinguishable from one another (all pairwise
+$p>0.3$) while each significantly beats every regression baseline. The improvement is thus a property of
+the framing, not of any particular model---a robust, transferable finding rather than a fragile
+architecture claim.
+
+The reframing also attacks the neonatal blind spot. A salience over a rate grid has no regression ceiling,
+so the classifier recovers discrimination in the $<$2-month band where regression collapses: AUROC rises
+from $0.619$ (PRISM) to $0.881$ (salience) to $0.935$ (with pretraining), and predicted rates track true
+rates up to $71$~breaths/min---well past the $\sim$35~breaths/min ceiling of every regressor
+(Fig.~\ref{fig:salience}). The neonatal subgroup is small ($n{=}29$, wide confidence intervals), so we
+present this as strong supporting evidence, not a definitive neonatal claim. Among the tied classifiers we
+recommend the salience network for deployment: unlike ROCKET it is calibrated out of the box (ECE $0.053$,
+Brier $0.092$), returns an interpretable rate, and is ceiling-free.
+
+\begin{table}[!t]\caption{Reframing tachypnea as signal classification is the largest single gain, and it
+is architecture-agnostic (the three classifiers are mutually indistinguishable, all pairwise $p>0.3$).
+Subject-disjoint five-fold, $332$ subjects; DeLong vs.\ full PRISM.}\label{tab:framing}\centering\small
+\begin{tabular}{@{}llcc@{}}\toprule
+Paradigm & Model & AUROC & $p$ vs.\ PRISM\\\midrule
+\multirow{3}{*}{Regression $\to$ threshold} & Published extractors & 0.73--0.76 & ---\\
+ & PRISM encoder (flow) & 0.873 & ---\\
+ & Full PRISM (multimodal) & 0.879 & ref\\\midrule
+\multirow{3}{*}{\textbf{Classification (ours)}} & ROCKET (random kernels) & 0.915 & $0.03$\\
+ & \textbf{Salience network} & \textbf{0.925} & $\mathbf{0.022}$\\
+ & Salience $+$ SSL pretrain & 0.930 & $0.013$\\\bottomrule
+\end{tabular}\end{table}
+
+\begin{figure}[!t]\centering
+\includegraphics[width=3.5in]{fig8_salience.pdf}
+\caption{RespSalience. (a) Predicted vs.\ true rate: the salience classifier (blue) tracks high rates,
+while rate regression (red) saturates at the $\sim$35~breaths/min ceiling. (b) Per-age-band tachypnea
+AUROC: the classifier recovers neonatal ($<$2mo) discrimination that regression loses ($95\%$
+CIs).}\label{fig:salience}
+\end{figure}
 
 \subsection{Age bands and the neonatal limit}\label{sec:age}
 Table~\ref{tab:clin} and Fig.~\ref{fig:ageband} break performance down by WHO band. For the neonatal
