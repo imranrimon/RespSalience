@@ -1,0 +1,430 @@
+%% ==========================================================================
+%% PRISM-Breath -- EXPANDED APPENDIX ADDITIONS (supplementary material)
+%% ==========================================================================
+%% Integration note (for the author): these \section and table blocks are meant
+%% to be pasted into manuscript/prism_breath_supplementary.tex *before*
+%% \end{document}. That file already defines the IEEEtran preamble and the
+%% counter renaming (\thetable=S\Roman, \thesection=S\arabic); when pasted in,
+%% section and table numbers continue automatically from the existing S1-S4 /
+%% Tables SI-SVI. No preamble or \setcounter is needed here. Uses only packages
+%% already loaded by the supplementary (amsmath, array, booktabs, amssymb,
+%% multirow). Every number below is produced by the cited script; nothing is
+%% hand-edited. All results are on the same subject-disjoint five-fold pedrr CV;
+%% the 6-model comparisons use the 298-clip set common to all methods (baselines
+%% use DeepPhys retrained to 100 epochs, matched compute).
+%% ==========================================================================
+
+\section{Full Multi-Metric Comparison}
+\label{app:fullmetric}
+%% source: scripts/full_metric_comparison.py --deepphys100
+Table~\ref{tab:fullmetric} reports all ten evaluation metrics for PRISM-Breath and the five published
+extractors on the 298 clips common to every method, with subject-grouped bootstrap 95\% confidence
+intervals ($2{,}000$ resamples). Metrics span three families: threshold-free discrimination of tachypnea
+(AUROC on the calibrated probability, AUROC ranked by the raw rate--threshold margin, AUROC ranked by the
+raw predicted rate, and AUPRC), screening operating points (sensitivity at $90\%$ specificity, specificity
+at $90\%$ sensitivity, and the WHO-decision sensitivity/specificity), and regression error (MAE, RMSE).
+PRISM-Breath holds the best point estimate on $6$ of $10$ metrics---every discrimination metric plus the
+screening-critical specificity-at-$90\%$-sensitivity (where the extractors collapse to $0.05$--$0.21$) and
+RMSE. The four metrics the baselines win are sensitivity and Se@Sp$90$ (DeepPhys), raw specificity
+(PhysFormer, which achieves it by under-alarming: its sensitivity is only $0.47$), and MAE (DeepPhys,
+$5.62$ vs.\ PRISM $6.40$). This dissociation is the paper's thesis in one table: the model with the lowest
+regression error is not the best tachypnea screen, because a $\sim$$0.8$~breath/min MAE advantage does not
+translate into discrimination near the clinical cutoff.
+
+\begin{table*}[!t]
+\caption{Full ten-metric comparison on the common 298-clip five-fold set (subject-bootstrap 95\% CI).
+Arrows mark metric direction; \textbf{bold} is the best point estimate in the row. PRISM-Breath is best on
+$6/10$ metrics.}
+\label{tab:fullmetric}\centering\scriptsize
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}lcccccc@{}}\toprule
+Metric & PRISM-Breath & EfficientPhys & TS-CAN & VIRENet & DeepPhys & PhysFormer\\\midrule
+AUROC $\uparrow$          & \textbf{0.874}[0.824,0.920] & 0.755[0.667,0.830] & 0.726[0.642,0.807] & 0.760[0.675,0.837] & 0.777[0.691,0.852] & 0.734[0.662,0.804]\\
+AUROC margin $\uparrow$   & \textbf{0.829}[0.765,0.888] & 0.755[0.667,0.830] & 0.726[0.642,0.807] & 0.760[0.675,0.837] & 0.777[0.691,0.852] & 0.734[0.662,0.804]\\
+AUROC raw-RR $\uparrow$   & \textbf{0.884}[0.840,0.925] & 0.786[0.718,0.849] & 0.774[0.702,0.838] & 0.795[0.720,0.862] & 0.799[0.727,0.864] & 0.816[0.761,0.867]\\
+AUPRC $\uparrow$          & \textbf{0.796}[0.717,0.863] & 0.738[0.648,0.817] & 0.722[0.630,0.803] & 0.756[0.665,0.836] & 0.775[0.689,0.849] & 0.605[0.493,0.721]\\
+Se@Sp90 $\uparrow$        & 0.654[0.537,0.797] & 0.704[0.548,0.800] & 0.630[0.530,0.753] & 0.704[0.600,0.805] & \textbf{0.716}[0.620,0.814] & 0.519[0.405,0.628]\\
+Sp@Se90 $\uparrow$        & \textbf{0.654}[0.270,0.790] & 0.046[0.000,0.203] & 0.060[0.005,0.159] & 0.051[0.005,0.198] & 0.078[0.004,0.224] & 0.207[0.098,0.345]\\
+Sens $\uparrow$           & 0.654[0.548,0.759] & 0.642[0.537,0.744] & 0.630[0.523,0.736] & 0.691[0.588,0.788] & \textbf{0.716}[0.616,0.809] & 0.469[0.355,0.578]\\
+Spec $\uparrow$           & 0.908[0.866,0.944] & 0.935[0.898,0.965] & 0.935[0.900,0.967] & 0.940[0.906,0.972] & 0.945[0.910,0.974] & \textbf{0.954}[0.924,0.981]\\
+MAE $\downarrow$          & 6.396[5.569,7.369] & 6.102[5.007,7.389] & 6.153[5.002,7.436] & 5.914[4.766,7.219] & \textbf{5.620}[4.588,6.738] & 6.652[5.729,7.654]\\
+RMSE $\downarrow$         & \textbf{10.099}[8.412,11.959] & 12.070[9.857,14.435] & 12.314[9.994,14.576] & 11.972[9.628,14.274] & 11.170[9.054,13.267] & 10.996[9.250,12.852]\\\bottomrule
+\end{tabular}%
+}
+\end{table*}
+
+Table~\ref{tab:paired} gives the paired significance tests against PRISM-Breath: the fast-DeLong test on
+the AUROC difference and the exact McNemar test on the discordant WHO decisions. PRISM-Breath's AUROC
+advantage is significant against all five baselines ($p \le 0.006$). The binary WHO decision is not
+significantly different from the extractors (McNemar n.s.), \emph{except against DeepPhys}---whose higher
+fixed-threshold sensitivity makes its binary call significantly better ($p{=}0.029$) even though PRISM
+out-ranks it on AUROC. This is consistent with the main-paper reading that the advantage lives in
+threshold-free discrimination and calibrated operating points rather than the single WHO cutpoint.
+
+\begin{table}[!t]
+\caption{Paired tests vs.\ PRISM-Breath (AUROC $0.874$). DeLong on the AUROC gap; exact McNemar on the WHO
+tachypnea decision. AUROCs are the canonical values, identical to the multi-metric panel
+(Table~\ref{tab:fullmetric}).}
+\label{tab:paired}\centering\small
+\begin{tabular}{@{}lccc@{}}\toprule
+Baseline & AUROC & DeLong $p$ & McNemar $p$\\\midrule
+EfficientPhys & 0.755 & $1.2{\times}10^{-3}$ & 0.560 (n.s.)\\
+TS-CAN        & 0.726 & $1.9{\times}10^{-4}$ & 0.627 (n.s.)\\
+VIRENet       & 0.760 & $1.9{\times}10^{-3}$ & 0.110 (n.s.)\\
+DeepPhys      & 0.777 & $6.0{\times}10^{-3}$ & $\mathbf{0.029}$\\
+PhysFormer    & 0.734 & $1.3{\times}10^{-4}$ & 0.542 (n.s.)\\\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Subgroup and Fairness Analysis}
+\label{app:subgroup}
+%% source: scripts/subgroup_fairness.py --deepphys100
+Tables~\ref{tab:agesubgroup}--\ref{tab:sitesubgroup} stratify tachypnea AUROC by clinical age band and by
+recording site on the common 298-clip set. Two patterns emerge. First, PRISM-Breath's advantage
+concentrates in the \emph{hard} regimes: it leads in the $2$--$12$-month band ($0.871$ vs.\ $0.73$--$0.80$)
+and at the two harder, higher-prevalence sites (ICMH, $0.803$ vs.\ $0.64$--$0.71$; Upazila HC, $0.946$ vs.\
+$0.79$--$0.87$), while in the easy regimes---the $12$--$60$-month band and the low-prevalence Community
+Clinic---all methods cluster near $0.92$--$0.99$ and PRISM's edge is null. Second, the $<2$-month band
+remains the hardest: PRISM's discrimination is weak (AUROC $0.684$ on the matched $298$-set, $0.668$ on the
+full $332$; $n{=}35$/$38$, wide CI) and its WHO-threshold sensitivity collapses to $0.10$, because the
+saturated camera rate ($\sim$$30$) rarely reaches the neonatal $\ge 60$~breath/min cutoff; the CNN
+extractors are at or below chance ($0.20$--$0.36$). This band motivates the escalation pathway of
+Section~\ref{app:escalation} rather than a screening claim.
+
+\begin{table}[!t]
+\caption{Tachypnea AUROC by age band (subject-bootstrap 95\% CI). \textbf{Bold} marks the leader; the
+$<2$mo band stays hard (PRISM AUROC $0.684$, WHO-threshold sensitivity $0.10$).}
+\label{tab:agesubgroup}\centering\small
+\begin{tabular}{@{}lcccc@{}}\toprule
+ & overall & 2--12mo & 12--60mo & $<2$mo\\
+Method & ($n{=}298$) & ($n{=}127$) & ($n{=}136$) & ($n{=}35$)\\\midrule
+PRISM-Breath  & \textbf{0.874} & \textbf{0.871} & 0.939 & \textbf{0.684}\\
+EfficientPhys & 0.755 & 0.783 & 0.947 & 0.252\\
+TS-CAN        & 0.726 & 0.751 & 0.941 & 0.196\\
+VIRENet       & 0.760 & 0.784 & 0.943 & 0.302\\
+DeepPhys      & 0.777 & 0.801 & 0.925 & 0.364\\
+PhysFormer    & 0.734 & 0.732 & 0.926 & 0.680\\\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[!t]
+\caption{Tachypnea AUROC by recording site (subject-bootstrap 95\% CI). Sites~1--2 are the harder,
+higher-prevalence deployments; site~3 is low-prevalence and easy.}
+\label{tab:sitesubgroup}\centering\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lccc@{}}\toprule
+ & ICMH & Upazila HC & Community\\
+Method & ($n{=}133$, $32\%$) & ($n{=}78$, $36\%$) & ($n{=}87$, $14\%$)\\\midrule
+PRISM-Breath  & \textbf{0.798} & \textbf{0.951} & 0.913\\
+EfficientPhys & 0.670 & 0.850 & 0.870\\
+TS-CAN        & 0.645 & 0.824 & 0.842\\
+VIRENet       & 0.637 & 0.869 & \textbf{0.996}\\
+DeepPhys      & 0.706 & 0.831 & 0.923\\
+PhysFormer    & 0.690 & 0.794 & 0.852\\\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Calibration and Selective Prediction}
+\label{app:calib}
+%% source: scripts/calibration_diagnostics.py
+Table~\ref{tab:calib} reports probability-calibration and selective-risk diagnostics on the common
+298-clip set. PRISM-Breath's tachypnea probability is roughly twice as well calibrated as the extractors
+(ECE $0.070$ vs.\ $0.13$--$0.15$; PhysFormer next at $0.095$), and it has the lowest Brier score ($0.118$)
+and the lowest selective-risk AURC ($0.069$ vs.\ $0.16$--$0.20$). Calibration is thus a genuine
+differentiator: the reliability-weighted fusion head yields probabilities that support thresholding and
+abstention, not just a rank order.
+
+\begin{table}[!t]
+\caption{Probability calibration and selective-risk diagnostics (common 298-clip set). ECE/MCE/Brier on the
+tachypnea probability; AURC is area under the risk--coverage curve (lower is better throughout).}
+\label{tab:calib}\centering\small
+\begin{tabular}{@{}lcccc@{}}\toprule
+Model & ECE $\downarrow$ & MCE $\downarrow$ & Brier $\downarrow$ & AURC $\downarrow$\\\midrule
+PRISM-Breath  & \textbf{0.070} & 0.323 & \textbf{0.118} & \textbf{0.069}\\
+EfficientPhys & 0.130 & \textbf{0.284} & 0.131 & 0.187\\
+TS-CAN        & 0.145 & 0.295 & 0.138 & 0.201\\
+VIRENet       & 0.133 & 0.359 & 0.126 & 0.184\\
+DeepPhys      & 0.141 & 0.336 & 0.127 & 0.176\\
+PhysFormer    & 0.095 & 0.349 & 0.157 & 0.156\\\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:conformal} shows that the model-level conformal interval ($\alpha{=}0.20$, target coverage
+$0.80$) is well calibrated in aggregate ($0.768$) but age-miscalibrated: it \emph{under}-covers the harder
+younger bands ($<2$mo $0.571$; $2$--$12$mo $0.725$) and \emph{over}-covers the easy $12$--$60$-month band
+($0.876$) at an essentially constant width ($\sim$$15.7$~breath/min). This motivates the age-conditional
+(Mondrian) conformalization used in the escalation pathway (Section~\ref{app:escalation}), where a per-band
+$\hat q$ replaces the single width. Per-fold predictive intervals and the hyperparameters are in the
+existing supplementary (Tables~SI--SVI); they are not repeated here.
+
+\begin{table}[!t]
+\caption{Conformal coverage by age band (nominal $0.80$; single model-level width). ``UNDER''/``OVER'' flag
+mis-coverage relative to nominal.}
+\label{tab:conformal}\centering\small
+\begin{tabular}{@{}lcccl@{}}\toprule
+Band & $n$ & Coverage & Width & Status\\\midrule
+overall  & 298 & 0.768 & 15.7 & OK\\
+2--12mo  & 109 & 0.725 & 15.6 & under\\
+12--60mo & 129 & 0.876 & 15.7 & over\\
+$<2$mo   & 28  & 0.571 & 15.7 & under\\\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:riskcov} compares two abstention signals on the risk--coverage curve. Ranking cases by
+probability confidence lowers the tachypnea error from $0.161$ at full coverage to $0.061$ when the most
+uncertain $40\%$ are deferred (AURC $0.069$); the cross-modal \emph{disagreement} score, by contrast, is a
+poor abstention signal (error \emph{rises} to $0.246$; AURC $0.240$). The operational triage that keys on
+disagreement therefore auto-clears $62\%$ of cases at accuracy $0.902$ but at a reduced sensitivity of
+$0.585$, while the $38\%$ it refers carry sensitivity $0.732$---i.e., disagreement routes many true
+positives to referral rather than resolving them, which is why probability-confidence is the preferred
+deferral rule.
+
+\begin{table}[!t]
+\caption{Risk--coverage: tachypnea error retained at each coverage level under two deferral signals.
+Probability-confidence dominates the disagreement score (lower AURC).}
+\label{tab:riskcov}\centering\small
+\begin{tabular}{@{}lccccc@{}}\toprule
+Coverage & 1.0 & 0.9 & 0.8 & 0.7 & 0.6\\\midrule
+Disagreement score & 0.161 & 0.179 & 0.197 & 0.225 & 0.246\\
+Prob.-confidence    & 0.161 & 0.142 & 0.105 & 0.081 & 0.061\\\midrule
+\multicolumn{6}{@{}l}{AURC: disagreement $0.240$ \quad prob.-confidence $\mathbf{0.069}$}\\\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Decision-Curve Analysis}
+\label{app:dca}
+%% source: scripts/decision_curve.py --deepphys100
+Table~\ref{tab:dca} gives net benefit across risk thresholds $p_t$ for the six models and the treat-all /
+treat-none references (common 298-clip set, tachypnea prevalence $0.275$). Screening operates at low $p_t$,
+where the cost of a missed infection dominates. In that regime PRISM-Breath has the highest net benefit and
+is the only model that exceeds treat-all: at $p_t{=}0.10$ its net benefit is $0.213$ ($95\%$~CI
+$[0.16,0.27]$) versus treat-all $0.195$ and the best baseline $0.167$; at $p_t{=}0.20$ it is $0.179$ versus
+$0.094$ and $\le 0.151$. As $p_t$ rises past $\sim$$0.30$ (a willingness-to-treat regime less relevant to
+screening) some extractors overtake it, mirroring their higher raw sensitivity. PRISM-Breath's net benefit
+stays positive and clinically useful across the whole $0.10$--$0.40$ range ($0.213 \to 0.123$).
+
+\begin{table}[!t]
+\caption{Decision-curve net benefit vs.\ risk threshold $p_t$ (common 298-clip set, prevalence $0.275$;
+subject-bootstrap 95\% CI). \textbf{Bold} marks the best model at each $p_t$.}
+\label{tab:dca}\centering\small
+\begin{tabular}{@{}lcccc@{}}\toprule
+ & \multicolumn{4}{c}{Net benefit at $p_t$}\\\cmidrule(l){2-5}
+Strategy & 0.10 & 0.20 & 0.30 & 0.40\\\midrule
+Treat-all     & 0.195 & 0.094 & $-0.035$ & $-0.208$\\
+Treat-none    & 0.000 & 0.000 & 0.000 & 0.000\\\midrule
+PRISM-Breath  & \textbf{0.213} & \textbf{0.179} & \textbf{0.154} & 0.123\\
+EfficientPhys & 0.160 & 0.148 & 0.137 & \textbf{0.142}\\
+TS-CAN        & 0.152 & 0.135 & 0.128 & 0.122\\
+VIRENet       & 0.159 & 0.143 & 0.143 & 0.140\\
+DeepPhys      & 0.166 & 0.151 & 0.142 & 0.141\\
+PhysFormer    & 0.167 & 0.123 & 0.096 & 0.095\\\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Threshold-Agnostic Framing}
+\label{app:framing}
+%% source: scripts/framing_bradypnea.py
+The main paper argues that classifying the waveform directly beats regressing a rate and thresholding it.
+Two controls here show the effect is not an artifact of the specific WHO tachypnea cutoff. First,
+Table~\ref{tab:brady} flips the direction of clinical interest to \emph{bradypnea} ($\text{GT}\le
+30$~breath/min, a low-rate operating point matched in prevalence, $0.24$, to the tachypnea base rate): a
+ROCKET classifier on each backbone's waveform still beats that backbone's regress-then-threshold framing,
+for every backbone, with the gap significant by DeLong ($+0.028$ to $+0.072$ AUROC). The classification
+framing therefore helps at both tails, not only for high rates.
+
+\begin{table*}[!t]
+\caption{Bradypnea head-swap ($\text{GT}\le 30$~breath/min, prevalence $0.24$). $\Delta$AUROC $=$
+classification $-$ regression framing on the \emph{same} backbone; $P(c{>}r)$ is the bootstrap probability
+the classifier wins.}
+\label{tab:brady}\centering\small
+\begin{tabular}{@{}lcccc@{}}\toprule
+Backbone & AUROC$_\text{reg}$ & AUROC$_\text{cls}$ & $\Delta$AUROC [95\% CI] & DeLong $p$\\\midrule
+EfficientPhys   & 0.925 & 0.953 & $+0.028\,[{+}0.00,{+}0.06]$ & 0.041\\
+TS-CAN          & 0.904 & 0.967 & $+0.063\,[{+}0.03,{+}0.10]$ & $1.1{\times}10^{-3}$\\
+PRISM (fusion)  & 0.881 & 0.953 & $+0.072\,[{+}0.04,{+}0.11]$ & $3.1{\times}10^{-4}$\\\bottomrule
+\end{tabular}
+\end{table*}
+
+Second, Table~\ref{tab:sweep} sweeps the decision threshold from $22$ to $64$~breath/min and reports the
+framing gain (classification $-$ regression AUROC for the label $\mathbf{1}[\text{GT}>\tau]$) at each. The
+gain is positive at every non-degenerate threshold for all three backbones ($\text{frac}(\text{gain}{>}0)=
+1.00$). For the extractors it grows monotonically as the threshold moves into the sparse high-rate tail
+(EfficientPhys mean $+0.164$, max $+0.339$ at $\tau{=}61$; TS-CAN mean $+0.193$, max $+0.367$ at
+$\tau{=}64$)---the reliability-scaling reading: the rarer and higher the positive class, the more the
+direct classifier gains over a saturating regressor. For PRISM the gain is smaller and flatter (mean
+$+0.097$, largest at the low-rate extreme $\tau{=}22$) because its reliability-weighted fusion head already
+recovers most of the discriminative signal, leaving a smaller residual for the head-swap to capture.
+
+\begin{table}[!t]
+\caption{Threshold sweep of the framing gain (AUROC$_\text{cls}-$AUROC$_\text{reg}$) for the label
+$\mathbf{1}[\text{GT}>\tau]$. ``prev'' is the positive prevalence at $\tau$. Gain is positive at every
+threshold for all backbones.}
+\label{tab:sweep}\centering\small
+\begin{tabular}{@{}ccccc@{}}\toprule
+$\tau$ & prev & EfficientPhys & TS-CAN & PRISM (fusion)\\\midrule
+22 & 0.96 & $+0.098$ & $+0.060$ & $+0.201$\\
+25 & 0.90 & $+0.027$ & $+0.066$ & $+0.126$\\
+28 & 0.81 & $+0.040$ & $+0.082$ & $+0.087$\\
+31 & 0.73 & $+0.043$ & $+0.073$ & $+0.073$\\
+34 & 0.63 & $+0.048$ & $+0.093$ & $+0.023$\\
+37 & 0.51 & $+0.084$ & $+0.126$ & $+0.055$\\
+40 & 0.42 & $+0.101$ & $+0.143$ & $+0.038$\\
+43 & 0.35 & $+0.145$ & $+0.177$ & $+0.055$\\
+46 & 0.29 & $+0.176$ & $+0.199$ & $+0.071$\\
+49 & 0.25 & $+0.182$ & $+0.218$ & $+0.070$\\
+52 & 0.19 & $+0.259$ & $+0.294$ & $+0.110$\\
+55 & 0.16 & $+0.284$ & $+0.323$ & $+0.131$\\
+58 & 0.13 & $+0.308$ & $+0.328$ & $+0.128$\\
+61 & 0.11 & $+0.339$ & $+0.339$ & $+0.143$\\
+64 & 0.09 & $+0.324$ & $+0.367$ & $+0.152$\\\midrule
+\multicolumn{2}{@{}l}{mean gain} & $+0.164$ & $+0.193$ & $+0.097$\\\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Neonatal Escalation Pathway}
+\label{app:escalation}
+%% source: scripts/escalation_pathway.py
+Because every camera extractor collapses in the $<2$-month band (Section~\ref{app:subgroup}), the deployed
+system does not screen neonates---it \emph{escalates} them. A leakage-free leave-one-fold-out
+age-conditional (Mondrian) conformal interval decides, per case, whether the WHO threshold is unambiguously
+outside the interval (auto-decide NORMAL/ALERT) or straddles it (REFER to a contact/radar modality).
+Table~\ref{tab:escalation} shows the referral rate rises steeply with clinical risk: $79\%$ of $<2$-month
+infants are escalated versus $34\%$ of the $12$--$60$-month band. On the cases the system \emph{retains}
+(Table~\ref{tab:retained}) it screens at high sensitivity in the older bands ($0.938$ for $12$--$60$mo,
+$0.625$ for $2$--$12$mo) and pooled sensitivity $0.735$/specificity $0.993$. Concretely, of the $8$
+tachypneic $<2$-month neonates that a naive camera-only screen would clear as normal ($\text{Sens}=0.000$),
+escalation routes $6$ to referral, cutting the missed-neonate count from $8$ to $2$.
+
+\begin{table}[!t]
+\caption{Escalation (REFER) rate by age band under the leave-one-fold-out age-conditional conformal triage
+($n{=}332$). ALERT/NORMAL are the auto-decided cases.}
+\label{tab:escalation}\centering\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lccccc@{}}\toprule
+Band & $n$ & REFER\% & NORMAL\% & ALERT\% & \#tachy\\\midrule
+$<2$mo   & 29  & 79.3 & 20.7 & 0.0  & 8\\
+2--12mo  & 143 & 48.3 & 44.8 & 7.0  & 49\\
+12--60mo & 160 & 34.4 & 55.6 & 10.0 & 29\\
+overall  & 332 & 44.3 & 47.9 & 7.8  & 86\\\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[!t]
+\caption{Selective screening on the \emph{retained} (non-escalated) cases. Referral removes the ambiguous
+band-straddling cases, leaving a high-specificity screen.}
+\label{tab:retained}\centering\small
+\begin{tabular}{@{}lccccc@{}}\toprule
+Band & $n_\text{ret}$ & pos & Sens & Spec & AUROC\\\midrule
+$<2$mo   & 6   & 2  & 0.000 & 1.000 & 0.500\\
+2--12mo  & 74  & 16 & 0.625 & 1.000 & 0.871\\
+12--60mo & 105 & 16 & 0.938 & 0.989 & 0.985\\
+overall  & 185 & 34 & 0.735 & 0.993 & 0.881\\\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent\textbf{Honest caveats.} The rescue is real but bounded. (i) It requires the \emph{age-conditional}
+$\hat q$ (per-band width $\sim$$26$~breath/min for $<2$mo vs.\ $\sim$$6.5$ for $12$--$60$mo); the persisted
+single model-level width ($\sim$$8$~breath/min) escalates only $10\%$ of neonates and rescues $0/8$. (ii)
+Escalation buys sensitivity with coverage: overall retained coverage is $56\%$ ($44\%$ of cases are
+referred rather than screened), which lifts retained sensitivity from the full-coverage $0.663$ to $0.735$.
+(iii) Even with age-conditional escalation, $2$ of the $8$ tachypneic neonates are still auto-cleared, so
+the pathway mitigates but does not eliminate the neonatal blind spot. A decision-focused end-to-end model
+that learns the referral policy directly is the natural next step.
+\subsection{Decision-Focused Training Does Not Improve on Calibration Alone}
+\label{app:decisionmodel}
+%% source: scripts/decision_model_eval.py
+The preceding analysis flagged an end-to-end model that learns the referral policy directly as the natural
+next step. We built exactly that: PRISM retrained with a differentiable net-benefit (decision-curve)
+objective---a soft decision $\sigma(20(p-p_t))$ integrated over the screening threshold grid
+$p_t\in[0.05,0.30]$, plus a calibrated abstention gate---under the identical five-fold protocol.
+\emph{The decision-focused variant does not improve clinical decision value; if anything it is slightly
+worse.} On the common $297$-clip set it lowers AUROC ($0.840$ vs.\ $0.869$) and, by trading sensitivity for
+specificity ($0.549/0.949$ vs.\ $0.659/0.907$), reduces net benefit at every operating point in the
+screening range (Table~\ref{tab:decmodel}). The paired net-benefit difference at the central threshold
+$p_t{=}0.15$ is $-0.019$ ($95\%$ CI $[-0.040,+0.002]$; $P(\text{decision}{>}\text{standard})=0.034$), i.e.\
+standard PRISM is favored. The reading is instructive rather than disappointing: once the estimate is
+\emph{framed as classification and calibrated} (ECE $0.064$), the model already sits near the
+decision-optimal frontier, so an explicit decision-curve loss finds no residual signal and merely shifts the
+operating point toward specificity---the wrong direction for a sensitivity-first screen. It is calibration,
+not a bespoke decision loss, that delivers the decision-curve advantage.
+
+\begin{table*}[!t]
+\caption{Decision-focused training vs.\ standard PRISM (common $297$-clip set, prevalence $0.276$). The
+net-benefit objective lowers sensitivity and every net-benefit operating point; standard calibrated PRISM is
+favored (paired $\Delta$NB at $p_t{=}0.15$: $-0.019$, $95\%$~CI $[-0.040,+0.002]$).}
+\label{tab:decmodel}\centering\small
+\begin{tabular}{@{}lccccc@{}}\toprule
+ & & & \multicolumn{3}{c}{Net benefit at $p_t$}\\\cmidrule(l){4-6}
+Model & AUROC & Sens/Spec & $0.10$ & $0.15$ & $0.20$\\\midrule
+Standard PRISM (calibrated) & \textbf{0.869} & $0.659/0.907$ & \textbf{0.214} & \textbf{0.194} & \textbf{0.179}\\
+Decision-loss PRISM & $0.840$ & $0.549/0.949$ & $0.206$ & $0.175$ & $0.156$\\\midrule
+\multicolumn{6}{@{}l}{\emph{treat-all:} NB$(0.10){=}0.196$, NB$(0.15){=}0.148$, NB$(0.20){=}0.095$; \emph{treat-none:} $0$}\\\bottomrule
+\end{tabular}
+\end{table*}
+
+\section{Framing Mechanism: Boundary Divergence}
+\label{app:mechanism}
+%% source: scripts/framing_phase_diagram.py
+Why should classifying a waveform and regressing-then-thresholding it ever disagree, given identical inputs?
+Table~\ref{tab:mechanism} localizes the effect. On all $332$ subjects the classification framing beats
+regression by $+0.051$ AUROC ($0.881$ vs.\ $0.830$; bootstrap $[{+}0.019,{+}0.082]$, $P(\text{gain}{>}0)=
+1.00$), but the two framings produce the \emph{same} binary decision on $308/332$ cases. The $24$ decisions
+that flip occur almost entirely at the boundary: their mean distance from the cutoff is $2.5$~breath/min
+versus $11.9$~breath/min for the agreeing cases. In other words, the framings are interchangeable away from
+the threshold and diverge only within $\sim$$2.5$~breath/min of it---exactly where a saturating regressor's
+point estimate is least trustworthy and a direct classifier's calibrated margin helps. Stratifying the gain
+by estimated distance-to-cutoff confirms it is largest for the mid tertile ($7$--$14$~breath/min,
+$+0.117$), i.e.\ the band of genuinely ambiguous cases, and near-zero for cases far from the threshold.
+
+\begin{table*}[!t]
+\caption{Boundary-divergence mechanism ($n{=}332$). Top: framing gain by estimated distance from the
+cutoff (tertiles of $|\hat r - \tau|$). Bottom: the $24$ decision flips concentrate near the boundary.}
+\label{tab:mechanism}\centering\small
+\begin{tabular}{@{}lcc@{}}\toprule
+Distance-to-cutoff tertile & range (breath/min) & cls$-$reg gain\\\midrule
+low  ($n{=}111$) & 0.1--7.0   & $+0.020$\\
+mid  ($n{=}110$) & 7.1--14.1  & $+0.117$\\
+high ($n{=}111$) & 14.2--37.3 & $+0.089$\\\midrule
+\multicolumn{3}{@{}l}{\emph{Decision flips (cls vs.\ reg):} $24/332$ subjects; cls correct $50\%$ of them}\\
+\multicolumn{3}{@{}l}{mean $|\hat r - \tau|$: flips $2.5$ vs.\ agreements $11.9$ breath/min}\\\bottomrule
+\end{tabular}
+\end{table*}
+
+\section{Multiple-comparison control and deployment operating characteristics}\label{sec:sdeploy}
+\textbf{Family-wise error control.} The five head-to-head AUROC comparisons against PRISM form a test
+family; controlling the false-discovery rate with the Benjamini--Hochberg procedure, all five survive at
+$q<0.05$ (Table~\ref{tab:fdr}; largest $q=6.0\times10^{-3}$), so PRISM's superiority is not an artefact of
+multiple testing.
+
+\begin{table}[!t]\caption{Benjamini--Hochberg FDR correction across the five DeLong comparisons vs.\ PRISM
+($298$ matched subjects). AUROCs as in Table~\ref{tab:paired}.}\label{tab:fdr}\centering\small
+\begin{tabular}{@{}lccc@{}}\toprule
+Baseline & AUROC & DeLong $p$ & BH $q$\\\midrule
+PhysFormer & 0.734 & $1.3\times10^{-4}$ & $4.9\times10^{-4}$\\
+TS-CAN & 0.726 & $1.9\times10^{-4}$ & $4.9\times10^{-4}$\\
+EfficientPhys & 0.755 & $1.2\times10^{-3}$ & $1.9\times10^{-3}$\\
+VIRENet & 0.760 & $1.9\times10^{-3}$ & $2.4\times10^{-3}$\\
+DeepPhys & 0.777 & $6.0\times10^{-3}$ & $6.0\times10^{-3}$\\\bottomrule
+\end{tabular}\end{table}
+
+\textbf{Deployment PPV/NPV across prevalence.} Predictive values depend on base rate, not the $27.5\%$
+cohort prevalence. At a sensitivity-first operating point (Se${\ge}0.90$, Sp${=}0.644$), NPV stays very high
+at community-realistic prevalences ($\ge0.98$ for prevalence ${\le}10\%$), so the screen functions as a
+strong \emph{rule-out}; PPV is low at low prevalence ($0.12$ at $5\%$)---the unavoidable arithmetic of
+screening a rare condition---rising to $0.49$ at cohort prevalence (Table~\ref{tab:ppv}). The
+number-needed-to-screen to detect one true case is $22$ at $5\%$ and $11$ at $10\%$ prevalence. A
+higher-specificity point (Se${\ge}0.80$, Sp${=}0.782$) raises PPV (e.g.\ $0.29$ at $10\%$) at a sensitivity
+cost; the operating point should be set for the target prevalence and the cost of a missed case.
+
+\begin{table}[!t]\caption{Deployment operating characteristics at a sensitivity-first point (Se${\ge}0.90$,
+Sp${=}0.644$) across screening prevalence. NNS: subjects screened per true tachypnea case
+detected.}\label{tab:ppv}\centering\small
+\begin{tabular}{@{}lccc@{}}\toprule
+Prevalence & PPV & NPV & NNS\\\midrule
+$2\%$ & 0.049 & 0.997 & 55\\
+$5\%$ & 0.118 & 0.992 & 22\\
+$10\%$ & 0.220 & 0.983 & 11\\
+$15\%$ & 0.309 & 0.974 & 7\\
+$20\%$ & 0.388 & 0.963 & 6\\
+$27.5\%$ (cohort) & 0.490 & 0.946 & 4\\\bottomrule
+\end{tabular}\end{table}

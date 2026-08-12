@@ -6,6 +6,7 @@
 \usepackage{booktabs}
 \usepackage{amssymb}
 \usepackage{multirow}
+\usepackage{graphicx}
 
 \renewcommand{\thetable}{S\Roman{table}}
 \renewcommand{\thesection}{S\arabic{section}}
@@ -14,7 +15,7 @@
 \begin{document}
 
 \title{Supplementary Material\\ Raw Respiratory-Rate Error Is Not Clinical Utility: A Calibrated,
-Reliability-Weighted Non-Contact Screen for Infant Tachypnea}
+Reliability-Weighted Non-Contact Screen for Pediatric Tachypnea}
 \author{Imran~Rimon}
 \markboth{IEEE Journal of Biomedical and Health Informatics -- Supplementary}{}
 \maketitle
@@ -34,15 +35,16 @@ model instability---PRISM's advantage holds even there ($0.812$ vs.\ $0.613$--$0
 \begin{table}[!t]
 \caption{PRISM-Breath per-fold clinical performance (subject-level).}
 \label{tab:s1}\centering\small
+\setlength{\tabcolsep}{4pt}
 \begin{tabular}{@{}lcccccc@{}}\toprule
 Fold & $n$ & pos & RR-MAE & Sens & Spec & AUROC\\\midrule
-Fold 0 & 67 & 20 & 8.20 & 0.60 & 0.94 & 0.812 \\
-Fold 1 & 67 & 20 & 5.54 & 0.65 & 0.91 & 0.882 \\
+Fold 0 & 67 & 20 & 8.20 & 0.55 & 0.94 & 0.812 \\
+Fold 1 & 67 & 19 & 5.54 & 0.63 & 0.92 & 0.871 \\
 Fold 2 & 66 & 15 & 5.16 & 0.93 & 0.90 & 0.969 \\
-Fold 3 & 66 & 17 & 6.85 & 0.53 & 0.94 & 0.868 \\
+Fold 3 & 66 & 16 & 6.85 & 0.56 & 0.94 & 0.891 \\
 Fold 4 & 66 & 14 & 5.18 & 0.64 & 0.88 & 0.929 \\\midrule
-\textbf{Pooled} & 332 & 86 & 6.19 & 0.66 & 0.91 & 0.879 \\
-\textbf{Mean$\pm$SD} & --- & --- & $6.19{\pm}1.32$ & --- & --- & $0.892{\pm}0.060$ \\\bottomrule
+\textbf{Pooled} & 332 & 84 & 6.19 & 0.65 & 0.92 & 0.881 \\
+\textbf{Mean$\pm$SD} & --- & --- & $6.19{\pm}1.32$ & --- & --- & $0.894{\pm}0.053$ \\\bottomrule
 \end{tabular}
 \end{table}
 
@@ -51,7 +53,7 @@ Fold 4 & 66 & 14 & 5.18 & 0.64 & 0.88 & 0.929 \\\midrule
 \label{tab:s2}\centering\small
 \begin{tabular}{@{}lccccc@{}}\toprule
 Method & Fold 0 & Fold 1 & Fold 2 & Fold 3 & Fold 4\\\midrule
-\textbf{PRISM-Breath} & \textbf{0.812} & \textbf{0.882} & \textbf{0.969} & \textbf{0.868} & \textbf{0.929} \\
+\textbf{PRISM-Breath} & \textbf{0.812} & \textbf{0.871} & \textbf{0.969} & \textbf{0.891} & \textbf{0.929} \\
 EfficientPhys & 0.681 & 0.750 & 0.770 & 0.821 & 0.750 \\
 DeepPhys & 0.675 & 0.793 & 0.808 & 0.823 & 0.715 \\
 TS-CAN & 0.626 & 0.814 & 0.730 & 0.707 & 0.758 \\
@@ -85,22 +87,22 @@ channel (``v3'') is competitive in-domain but collapses out-of-domain (main pape
 sequence backbones, PRISM's reliability-weighted fusion significantly outperforms a Mamba-style
 state-space fusion and is statistically comparable to a CliffPhys-style backbone.
 
-\begin{table}[!t]
+\begin{table*}[!t]
 \caption{Extended design variants (pooled five-fold, 332 subjects). DeLong $p$ is vs.\ full PRISM
-(AUROC 0.879); ``n.s.'' $=$ not significant.}
+(AUROC 0.881); ``n.s.'' $=$ not significant.}
 \label{tab:s4}\centering\small
 \begin{tabular}{@{}lccc@{}}\toprule
 Variant & RR-MAE & AUROC & DeLong $p$ vs.\ PRISM\\\midrule
-PRISM-Breath (full) & 6.19 & 0.879 & --- \\
+PRISM-Breath (full) & 6.19 & 0.881 & --- \\
 Flow-only (depth/audio off) & 6.07 & 0.860 & n.s. \\
-Frequency-forward fusion & 6.35 & 0.855 & n.s. \\
-Heteroscedastic $+$ synthetic & 6.23 & 0.888 & n.s. \\
-Hand-crafted flow (v3) & 6.20 & 0.861 & n.s. \\
-AirFlow-compact head & 6.54 & 0.844 & n.s. \\\midrule
-Mamba-fusion backbone & 7.55 & 0.811 & $0.002$ \\
-CliffPhys-style backbone & 6.53 & 0.853 & $0.090$ (n.s.) \\\bottomrule
+Frequency-forward fusion & 6.35 & 0.856 & n.s. \\
+Heteroscedastic $+$ synthetic & 6.23 & 0.887 & n.s. \\
+Hand-crafted flow (v3) & 6.20 & 0.853 & n.s. \\
+AirFlow-compact head & 6.54 & 0.842 & n.s. \\\midrule
+Mamba-fusion backbone & 7.55 & 0.809 & $0.002$ \\
+CliffPhys-style backbone & 6.53 & 0.850 & $0.090$ (n.s.) \\\bottomrule
 \end{tabular}
-\end{table}
+\end{table*}
 
 \section{Hyperparameters}
 Tables~\ref{tab:s5}--\ref{tab:s6} report the exact settings used. PRISM-Breath is a compact model
@@ -110,7 +112,7 @@ seeds ($42,52,62$).
 \begin{table}[!t]
 \caption{PRISM-Breath model and supervised-training hyperparameters.}
 \label{tab:s5}\centering\small
-\begin{tabular}{@{}ll@{}}\toprule
+\begin{tabular}{@{}p{0.30\linewidth}p{0.62\linewidth}@{}}\toprule
 Hyperparameter & Value\\\midrule
 Model dimension $d_{\text{model}}$ & 64 \\
 Sequence length (samples) & 300 \\
@@ -132,9 +134,9 @@ Sampling rate (common time base) & 25 Hz \\\bottomrule
 \begin{table}[!t]
 \caption{Extractor, self-supervised pretraining, and conformal-calibration settings.}
 \label{tab:s6}\centering\small
-\begin{tabular}{@{}ll@{}}\toprule
+\begin{tabular}{@{}p{0.30\linewidth}p{0.62\linewidth}@{}}\toprule
 Component / Hyperparameter & Value\\\midrule
-\multicolumn{2}{@{}l}{\emph{Learned optical-flow extractor (EfficientPhys $+$ Coarse-to-Fine)}}\\
+\multicolumn{2}{@{}p{0.92\linewidth}@{}}{\emph{Learned optical-flow extractor (EfficientPhys $+$ Coarse-to-Fine)}}\\
 \quad Epochs / batch / infer-batch & 15 / 4 / 8 \\
 \quad Learning rate / seed & $1{\times}10^{-3}$ / 100 \\
 \quad Loss & PSD-MSE (power-spectral) \\
@@ -151,7 +153,7 @@ Component / Hyperparameter & Value\\\midrule
 \end{tabular}
 \end{table}
 
-\section{Implementation and Reproducibility}
+\section{Implementation and Reproducibility}\label{app:impl}
 \textbf{Environment.} PyTorch 2.8 (CUDA 12.9), Python 3.13, single NVIDIA Quadro RTX~8000. Depth from
 Depth-Anything-V2; optical flow from a body-ROI EfficientPhys$+$Coarse-to-Fine extractor vendored from the
 AIR-400 codebase.
@@ -178,7 +180,13 @@ uses decision-curve net benefit.
 
 \textbf{Provenance.} Each prediction file follows a \texttt{\{dataset\}\_\{subject\}\_\{video\}}
 contract, enabling the exact per-fold reconstruction in Tables~\ref{tab:s1}--\ref{tab:s3}. A known
-extractor-leakage pitfall (cross-fold caching of a flow backbone) was identified and excluded; the
-leakage-free numbers are the ones reported.
+extractor-leakage pitfall (cross-fold caching of a flow backbone) was identified and excluded. Re-extracting
+each fold's flow with a held-out extractor quantifies the inflation as small for both backbones---EfficientPhys
+$+0.019$ AUROC (DeLong $p=0.58$, n.s.) and TS-CAN $-0.014$---and the leakage-free numbers are the ones reported.
+
+\input{appendix_additions}
+\input{tripod_checklist}
+\input{appendix_evals}
+\input{appendix_reviewer_analyses}
 
 \end{document}

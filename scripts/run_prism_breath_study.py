@@ -52,6 +52,9 @@ def main() -> int:
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--pretrain-epochs", type=int, default=20)
     parser.add_argument("--train-epochs", type=int, default=20)
+    parser.add_argument("--early-stop-patience", type=int, default=0,
+                        help="pass through to train_prism_breath: stop each variant when val plateaus -> "
+                             "converged ablations regardless of the --train-epochs ceiling (recommend 15-20)")
     parser.add_argument("--disagreement-bins", default="0.8,0.9")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--skip-existing", action="store_true", help="Skip stages whose expected output files already exist")
@@ -143,6 +146,8 @@ def main() -> int:
                 if pretrain_ckpt.exists() and variant != "airflow_compact":
                     cmd.extend(["--encoder-pretrained", str(pretrain_ckpt)])
                     cmd.extend(["--freeze-encoder-epochs", "2"])
+                if args.early_stop_patience:
+                    cmd.extend(["--early-stop-patience", str(args.early_stop_patience)])
                 run_command(cmd)
 
         if "validate" in stages:

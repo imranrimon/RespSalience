@@ -861,9 +861,13 @@ class PrismBreathLoss(nn.Module):
         apnea_weight: float = 0.15,
         motion_weight: float = 0.15,
         het_weight: float = 0.0,
+        decision_weight: float = 0.0,
+        decision_refer_cost: float = 0.1,
     ):
         super().__init__()
         self.het_weight = het_weight
+        self.decision_weight = decision_weight
+        self.decision_refer_cost = decision_refer_cost
         self.rr_weight = rr_weight
         self.uncertainty_weight = uncertainty_weight
         self.tachy_weight = tachy_weight
@@ -957,6 +961,26 @@ class PrismBreathLoss(nn.Module):
                 0.5 * (torch.exp(-lv) * (outputs["rr_pred"] - gt_rr) ** 2 + lv), sample_weight
             )
 
+        # Decision-focused net-benefit loss (Tier-2c): directly optimize the clinical decision curve
+        # over the screening operating range, rather than only the regression/threshold surrogate. The
+        # optional review-head gate lets the model learn a calibrated abstention (referral to escalation).
+        # Off by default (decision_weight=0), so existing callers/checkpoints are unaffected.
+        decision_loss = zero
+        if self.decision_weight > 0:
+            p = torch.sigmoid(outputs["tachy_logit"])
+            keep = torch.ones_like(p)
+            if self.decision_refer_cost > 0 and "review_logit" in outputs:
+                keep = 1.0 - torch.sigmoid(outputs["review_logit"])   # retained = not referred to escalation
+            n = float(max(p.shape[0], 1))
+            nb = zero
+            pt_grid = (0.05, 0.10, 0.15, 0.20, 0.25, 0.30)            # screening range (false negatives costly)
+            for pt in pt_grid:
+                d = torch.sigmoid(20.0 * (p - pt)) * keep            # soft screen decision on retained cases
+                w = pt / (1.0 - pt)
+                nb = nb + ((d * tachy_target).sum() - w * (d * (1.0 - tachy_target)).sum()) / n
+            nb = nb / len(pt_grid)
+            decision_loss = -nb + self.decision_refer_cost * (1.0 - keep).mean()
+
         total = (
             self.rr_weight * rr_loss
             + self.het_weight * het_loss
@@ -968,9 +992,11 @@ class PrismBreathLoss(nn.Module):
             + self.codebook_weight * codebook_loss
             + self.apnea_weight * apnea_loss
             + self.motion_weight * motion_loss
+            + self.decision_weight * decision_loss
         )
         return {
             "loss": total,
+            "decision_loss": decision_loss,
             "rr_loss": rr_loss,
             "het_loss": het_loss,
             "uncertainty_loss": uncertainty_loss,

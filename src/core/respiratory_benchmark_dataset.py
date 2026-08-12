@@ -161,7 +161,12 @@ class RespiratoryBenchmarkDataset(Dataset):
         has_audio = has_audio and _informative(audio)
 
         gt_rr = self._pick_scalar(data, ["gt", "bpm"], default=record.get("gt_rr_bpm", 0.0))
-        age_months = self._pick_scalar(data, ["age_months"], default=record.get("age_months", 6))
+        # The manifest carries the authoritative per-subject age from the Stata metadata; the cached
+        # .npz can hold a stale value (older extractions mapped a falsy age 0 -> the infant-prior
+        # default 6, which mis-banded true newborns). Prefer the manifest age; fall back to the .npz
+        # only when the manifest lacks it.
+        rec_age = record.get("age_months")
+        age_months = float(rec_age) if rec_age is not None else self._pick_scalar(data, ["age_months"], default=6)
 
         dataset = self._pick_string(data, ["source_dataset", "dataset"], default=record.get("dataset", "unknown"))
         dataset = canonical_dataset_name(dataset)

@@ -1,0 +1,16 @@
+{
+  "alpha": 0.2,
+  "nominal_coverage": 0.8,
+  "qhat_by_band": {
+    "12-60mo": 6.414,
+    "2-12mo": 11.259,
+    "<2mo": 24.591
+  },
+  "who_threshold": {
+    "<2mo": 60,
+    "2-12mo": 50,
+    "12-60mo": 40
+  },
+  "source": "pedrr_kfold_learned residuals",
+  "method": "age-conditional split conformal + interval-straddle triage"
+}

@@ -1,0 +1,115 @@
+%% appendix_evals.tex -- paste-in fragment (\input into prism_breath_supplementary.tex).
+%% Requires amsmath, array, booktabs, amssymb, multirow (already loaded by the supplement).
+%% All numbers computed on the cached pedrr 5-fold PRISM-Breath predictions
+%% (outputs/paper_runs/pedrr_kfold_learned), pooled to 332 subject-level cases.
+
+\section{Failure-Mode Analysis of Tachypnea Misclassifications}
+\label{sec:failure_mode}
+We audit where the WHO decision rule ($\hat r \ge \tau_{\text{age}}$) fails on the pooled five-fold set
+(332 subjects, 86 tachypneic). The rule yields 57 true positives, 29 false negatives (missed tachypnea),
+21 false positives, and 225 true negatives (Sens $0.66$, Spec $0.91$). Table~\ref{tab:fail_means}
+contrasts, for each case class, the mean of five deployment-time reliability proxies plus age;
+Table~\ref{tab:fail_tertile} stratifies the miss (false-negative) rate among the 86 positives by proxy
+tertile.
+
+\begin{table}[!t]
+\caption{Mean reliability proxy by case class (WHO decision on 332 subjects). TP/FN/FP as defined in text;
+Overall spans all 332 (including 225 true negatives). $\hat r$ is the predicted rate, $\tau$ the age
+threshold. $^\dagger$The learned min-quality head is degenerate (collapsed to $\approx 0$) and is reported
+for completeness only.}
+\label{tab:fail_means}\centering\small
+\begin{tabular}{@{}lcccc@{}}\toprule
+Proxy & TP & FN & FP & Overall\\\midrule
+Disagreement            & 0.630 & 0.775 & 0.678 & 0.844 \\
+Min.\ modality qual.$^\dagger$ & 0.000 & 0.000 & 0.000 & 0.007 \\
+Apnea prob.             & 0.690 & 0.636 & 0.654 & 0.641 \\
+Motion prob.            & 0.122 & 0.254 & 0.194 & 0.309 \\
+$|\hat r-\tau|$ (br/min) & 9.56 & 11.11 & 2.63 & 11.20 \\
+Age (months)            & 14.4 & 6.0 & 23.0 & 18.2 \\\midrule
+$n$ (subjects)          & 57 & 29 & 21 & 332 \\\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[!t]
+\caption{Fraction of the 86 tachypneic subjects missed (false negative), by proxy tertile. Each
+tertile holds 28--29 positives (low$/$mid$/$high $=29/28/29$).}
+\label{tab:fail_tertile}\centering\small
+\begin{tabular}{@{}lccc@{}}\toprule
+Stratifier & Low & Mid & High\\\midrule
+Motion prob.      & 0.00 & 0.32 & 0.69 \\
+Apnea prob.       & 0.76 & 0.25 & 0.00 \\
+Disagreement      & 0.17 & 0.36 & 0.48 \\
+$|\hat r-\tau|$   & 0.28 & 0.39 & 0.34 \\\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent Two model-internal signals separate misses from caught cases most strongly among positives:
+elevated \emph{motion probability} (AUROC $0.91$ for ranking FN vs.\ TP, with a monotone dose--response of
+$0.00\!\to\!0.32\!\to\!0.69$ across tertiles) and, inversely, \emph{low apnea probability} (AUROC $0.08$).
+Motion is the physiologically interpretable and actionable driver: missed infants are also younger
+(mean $6.0$ vs.\ $14.4$ months for TP), consistent with the neonatal frontier. Crucially, near-threshold
+ambiguity is \emph{not} the cause of misses: the miss rate is essentially flat across $|\hat r-\tau|$
+tertiles ($0.28/0.39/0.34$) and false negatives sit \emph{farther} below threshold than true positives
+($11.1$ vs.\ $9.6$ breaths/min). Misses are therefore gross under-counts---the known RGB saturation on fast,
+shallow breathing---rather than borderline calls, which argues for motion-gated abstention rather than
+threshold retuning.
+
+\section{Edge-Deployment Cost: Parameters and CPU Latency}
+\label{sec:edge}
+Table~\ref{tab:edge} reports the size and inference cost of the full \texttt{prism\_breath} model on CPU.
+The model has $0.575$M parameters ($2.30$\,MB in fp32) and processes a single clip in $21.5$\,ms; batching
+amortizes fixed overhead to $1.56$\,ms/clip ($642$ clips/s) at batch~32. At $25$\,fps a $300$-sample clip
+spans $12$\,s of video, so single-clip inference runs $\sim\!560\times$ faster than real time on commodity
+CPU with no accelerator, confirming the design is edge-deployable.
+
+\begin{table}[!t]
+\caption{PRISM-Breath deployment cost (CPU, 8 threads). Latency is mean$\pm$SD over 20 timed forward passes
+(5 warmup). Inputs are three per-modality signals shaped $(\text{batch},300)$, matching the model's
+$\texttt{seq\_len}{=}300$; measured under concurrent GPU-training load, so figures are conservative upper
+bounds.}
+\label{tab:edge}\centering\small
+\begin{tabular}{@{}lc@{}}\toprule
+Metric & Value\\\midrule
+Parameters (all trainable)      & $574{,}804$ \;($0.575$\,M) \\
+Model size (fp32)               & $2.30$\,MB \\
+CPU latency, batch $1$          & $21.5 \pm 2.6$\,ms/clip \\
+CPU latency, batch $16$         & $2.54$\,ms/clip \;($40.7$\,ms/batch) \\
+CPU latency, batch $32$         & $1.56$\,ms/clip \;($49.9$\,ms/batch) \\
+Peak throughput (batch $32$)    & $642$ clips/s \\\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Performance Equity Across Age and Recording Site}
+\label{sec:equity}
+Table~\ref{tab:equity} reports tachypnea AUROC stratified by WHO age band and by the three real recording
+sites, with the equity gap defined as the max$-$min AUROC across groups on each axis (pooled overall AUROC
+$0.881$, $n{=}332$). The age gap ($0.280$) is large and concentrated in the $<$2\,mo band (AUROC $0.668$,
+only $10$ positives): this is the saturation of the current camera-based extractors on fast neonatal
+breathing---a limit shared by every camera method we tested, not a model-specific bias---and it motivates the
+deploy-time deferral of $<$2\,mo cases described in the main text. The cross-site gap is smaller ($0.136$),
+weakest at the highest-acuity referral site (ICMH), indicating reasonable geographic generalization across
+three Bangladeshi care settings. Skin-tone equity is \emph{not} computable here: the pipeline consumes
+extracted one-dimensional respiratory signals rather than raw color frames, and the cohort is
+single-population; quantifying skin-tone fairness would require an external multi-ethnic video cohort and
+is stated as a limitation.
+
+\begin{table}[!t]
+\caption{Tachypnea AUROC by age band and recording site (pooled five-fold, subject-level). Equity gap
+$=\max-\min$ AUROC across the groups on each axis.}
+\label{tab:equity}\centering\small
+\begin{tabular}{@{}llccc@{}}\toprule
+Axis & Group & $n$ & pos & AUROC\\\midrule
+\multirow{4}{*}{Age}
+ & $<$2\,mo            & 38  & 10 & 0.668 \\
+ & 2--12\,mo           & 134 & 45 & 0.875 \\
+ & 12--60\,mo          & 160 & 29 & 0.948 \\
+ \cmidrule(l){2-5}
+ & \textbf{Equity gap} &     &    & \textbf{0.280} \\\midrule
+\multirow{4}{*}{Site}
+ & Site 1 (ICMH)       & 137 & 42 & 0.803 \\
+ & Site 2 (Upazila HC) & 92  & 30 & 0.946 \\
+ & Site 3 (Community)  & 103 & 12 & 0.924 \\
+ \cmidrule(l){2-5}
+ & \textbf{Equity gap} &     &    & \textbf{0.143} \\\bottomrule
+\end{tabular}
+\end{table}

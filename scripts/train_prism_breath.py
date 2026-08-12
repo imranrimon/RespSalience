@@ -253,6 +253,13 @@ def main() -> int:
                         help="#C: ground reliability weights in computed spectral SNR (de-collapse the inert fusion)")
     parser.add_argument("--het-weight", type=float, default=0.0,
                         help="heteroscedastic Gaussian-NLL weight (>0 enables the aleatoric log-var head)")
+    parser.add_argument("--decision-loss-weight", type=float, default=0.0,
+                        help="Tier-2c: weight on the differentiable net-benefit (decision-curve) loss over the "
+                             "screening operating range (>0 trains the model on the clinical decision, not just "
+                             "regression->threshold). 0 = off (default).")
+    parser.add_argument("--decision-refer-cost", type=float, default=0.1,
+                        help="Tier-2c: referral (abstention/escalation) cost in the decision loss; the review head "
+                             "gates which cases are retained vs referred. Only active when --decision-loss-weight>0.")
     parser.add_argument("--synth-highrr-prob", type=float, default=0.0,
                         help="per-sample prob of synth high-RR time-compression augmentation (attacks neonatal scarcity)")
     parser.add_argument("--epochs", type=int, default=20)
@@ -261,7 +268,12 @@ def main() -> int:
     parser.add_argument("--weight-decay", type=float, default=1e-4)
     parser.add_argument("--num-workers", type=int, default=0)
     parser.add_argument("--encoder-pretrained", default="", help="Optional encoder checkpoint from scripts/pretrain_prism_breath.py")
+    parser.add_argument("--init-from", default="", help="Warm-start/RESUME the full model from a prior prism_breath_best.pt "
+                        "(continue an under-converged fold to convergence instead of restarting)")
     parser.add_argument("--freeze-encoder-epochs", type=int, default=0)
+    parser.add_argument("--early-stop-patience", type=int, default=0,
+                        help="Stop when val selection_score has not improved for N epochs (0=off). "
+                        "Guarantees convergence regardless of the --epochs ceiling.")
     parser.add_argument("--modality-dropout-prob", type=float, default=0.1)
     parser.add_argument("--disable-source-balanced-sampling", action="store_true")
     parser.add_argument("--air125-sampling-boost", type=float, default=1.25)
@@ -362,7 +374,9 @@ def main() -> int:
     )
     model = build_prism_breath_model_from_config(model_config.to_dict()).to(device)
     criterion = PrismBreathLoss(apnea_weight=args.apnea_loss_weight, motion_weight=args.motion_loss_weight,
-                                het_weight=args.het_weight)
+                                het_weight=args.het_weight,
+                                decision_weight=args.decision_loss_weight,
+                                decision_refer_cost=args.decision_refer_cost)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
 
     pretrain_info = None
@@ -370,12 +384,28 @@ def main() -> int:
         pretrain_info = load_encoder_pretraining(model, args.encoder_pretrained, map_location=device)
         print(f"[Pretraining] loaded encoder weights: {pretrain_info}")
 
+    resume_info = None
+    resume_best = math.inf
+    if args.init_from:
+        ckpt = torch.load(args.init_from, map_location=device)
+        state = ckpt.get("state_dict", ckpt)
+        missing, unexpected = model.load_state_dict(state, strict=False)
+        if ckpt.get("best_score") is not None:
+            resume_best = float(ckpt["best_score"])   # only overwrite the checkpoint if we IMPROVE on it
+        resume_info = {"init_from": str(args.init_from), "prior_best_score": ckpt.get("best_score"),
+                       "missing": len(missing), "unexpected": len(unexpected)}
+        print(f"[Resume] warm-started FULL model from {args.init_from}: {resume_info}")
+
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    best_score = math.inf
+    best_score = resume_best
+    epochs_since_improve = 0
     history: List[Dict[str, float]] = []
     checkpoint_path = output_dir / "prism_breath_best.pt"
+    if args.init_from and Path(args.init_from).resolve() != checkpoint_path.resolve():
+        import shutil
+        shutil.copy(str(args.init_from), str(checkpoint_path))   # seed run dir w/ prior best; overwritten only if an epoch beats it
 
     for epoch in range(1, args.epochs + 1):
         freeze_encoder = epoch <= int(args.freeze_encoder_epochs)
@@ -431,6 +461,7 @@ def main() -> int:
 
         if composite < best_score:
             best_score = composite
+            epochs_since_improve = 0
             torch.save(
                 {
                     "state_dict": model.state_dict(),
@@ -444,6 +475,12 @@ def main() -> int:
                 },
                 checkpoint_path,
             )
+        else:
+            epochs_since_improve += 1
+            if args.early_stop_patience and epochs_since_improve >= args.early_stop_patience:
+                print(f"[EarlyStop] val selection_score has not improved for "
+                      f"{args.early_stop_patience} epochs (best={best_score:.3f}); stopping at epoch {epoch}.")
+                break
 
     save_json(
         output_dir / "training_history.json",
@@ -452,9 +489,17 @@ def main() -> int:
             "best_score": best_score,
             "model_config": model.export_config(),
             "pretraining": pretrain_info,
+            "resume": resume_info,
         },
     )
-    print(f"[OK] Saved best checkpoint to {checkpoint_path}")
+    if checkpoint_path.exists():
+        kept = " (== --init-from; no epoch improved on it)" if (args.init_from and resume_info
+                and resume_info.get("prior_best_score") is not None
+                and best_score >= float(resume_info["prior_best_score"])) else ""
+        print(f"[OK] Best checkpoint at {checkpoint_path} (score={best_score:.4f}){kept}")
+    else:
+        print(f"[WARN] No checkpoint at {checkpoint_path}: no epoch beat seeded best={best_score:.4f}. "
+              f"Re-run with --init-from (seeds a baseline) and/or a lower --lr.")
     print(f"[OK] Saved training history to {output_dir / 'training_history.json'}")
     return 0
 

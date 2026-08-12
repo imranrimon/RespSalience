@@ -11,9 +11,8 @@ systems coexist and meet at signal extraction:**
 2. **PRISM-Breath benchmark/paper pipeline** — manifest-driven, multi-dataset training/eval/ablation for the journal paper (the current focus).
 
 ## Environment
-- Conda env `resp_env`, Python 3.13. `environment.yml` is the authoritative pinned spec (torch 2.8 cu129, transformers, mediapipe, librosa, ultralytics, streamlit); `requirements.txt` is a minimal subset. GPU/CUDA build. Note the file is UTF-16 encoded.
+- Conda env `resp_env`, Python 3.13. `environment.yml` is the authoritative pinned spec; `requirements.txt` is a minimal subset. GPU/CUDA build. Note the file is UTF-16 encoded.
 - Conda env is `resp_env` (matches `environment.yml`; `train_all.bat` now activates the same name).
-- Not a git repository.
 
 ## Commands
 

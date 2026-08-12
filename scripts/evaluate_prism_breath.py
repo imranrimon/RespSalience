@@ -237,6 +237,17 @@ def main() -> int:
 
                 all_rows.append(row)
 
+    # E7 fix (opt-in, non-breaking): replace the disagreement-based triage with the deployable
+    # age-conditional conformal + sensitivity-first interval-straddle triage when the artifact exists.
+    try:
+        import os as _os, pandas as _pd
+        from recalibrate_triage import apply_deploy_triage, DEPLOY_CFG
+        if _os.path.exists(DEPLOY_CFG) and all_rows:
+            all_rows = apply_deploy_triage(_pd.DataFrame(all_rows)).to_dict("records")
+            print("[PRISM-Breath] applied age-conditional deploy triage (E7 fix)")
+    except Exception as _e:
+        print(f"[PRISM-Breath] deploy-triage skipped: {_e}")
+
     summary = compute_summary(all_rows)
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)

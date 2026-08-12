@@ -1,0 +1,261 @@
+%% ==========================================================================
+%% PRISM-Breath -- TRIPOD+AI REPORTING CHECKLIST (supplementary fragment)
+%% ==========================================================================
+%% Integration note (for the author): \input this file into
+%% manuscript/prism_breath_supplementary.tex *before* \end{document}
+%% (e.g., right after \input{appendix_additions}). That file already provides
+%% the IEEEtran preamble and the S-counter renaming (\thetable=S\Roman,
+%% \thesection=S\arabic); section/table numbers here continue automatically.
+%% Uses only packages already loaded by the supplementary (amsmath, array,
+%% booktabs, amssymb, multirow). No preamble, \usepackage, or \setcounter here.
+%% The supplementary is compiled standalone (no bibliography), so TRIPOD+AI is
+%% cited by name and the main paper is referenced by section title, not \ref.
+%% ==========================================================================
+
+\section{TRIPOD+AI Reporting Checklist}
+\label{app:tripod}
+
+The Transparent Reporting of a multivariable prediction model for Individual Prognosis Or Diagnosis --
+Artificial Intelligence extension (TRIPOD+AI; Collins \emph{et al.}, \emph{BMJ} 2024) is the reporting
+standard for studies that develop or evaluate clinical prediction models built with machine learning.
+Table~\ref{tab:tripod-a} through Table~\ref{tab:tripod-e} map every TRIPOD+AI item to the exact location in
+this manuscript that addresses it, and record an honest per-item status so that a reader can see at a glance
+which requirements are fully met, which are partially met, which are not met, and which require author input
+(e.g.\ ethics, funding) that cannot be derived from the manuscript. We deliberately mark items as
+\emph{Partial} or \emph{Not met} wherever the evidence is single-cohort, simulation-based, or absent, rather
+than overstate the study's clinical validation. Item numbers follow the TRIPOD+AI ordering; authors should
+cross-check the final row assignment against the official checklist form before submission.
+
+\noindent\textbf{Status key.} \textbf{Met}~$=$~fully reported in the manuscript;
+\textbf{Partial}~$=$~partially addressed, see note; \textbf{Not met}~$=$~a study element not performed or
+not reported; \textbf{Author-to-complete}~$=$~administrative content (ethics, funding, registration,
+availability statement, accrual dates) not present in the manuscript and to be supplied by the authors before
+submission; \textbf{N/A}~$=$~not applicable to this study design.
+
+\begin{table*}[!tp]
+\caption{TRIPOD+AI checklist, Part 1 of 5: Title, Abstract, and Introduction.}
+\label{tab:tripod-a}\centering\footnotesize
+\begin{tabular}{@{}c >{\raggedright\arraybackslash}p{1.65in} >{\raggedright\arraybackslash}p{0.70in} >{\raggedright\arraybackslash}p{3.35in}@{}}
+\toprule
+Item & TRIPOD+AI item (abbreviated) & Status & Where addressed / notes\\\midrule
+\multicolumn{4}{@{}l}{\emph{Title and Abstract}}\\
+1  & Title identifies a prediction-model study, target population, and predicted outcome
+   & \textbf{Met}
+   & Main paper title: non-contact infant tachypnea screening reframed as signal classification (population $=$ infants; outcome $=$ WHO tachypnea).\\
+2  & Abstract: structured summary of objectives, data, methods, results
+   & \textbf{Met}
+   & Main paper Abstract (Goal/Methods/Results/Conclusion): reports AUROC, calibration (ECE), subject-bootstrap CIs, and the neonatal limitation.\\\midrule
+\multicolumn{4}{@{}l}{\emph{Introduction}}\\
+3a & Background and rationale, including references to existing models
+   & \textbf{Met}
+   & Main, Sec.~Introduction and Sec.~Related Work (CHROM/POS, DeepPhys, TS-CAN, PhysNet, EfficientPhys, AIR/VIRENet, radar, respiratory audio).\\
+3b & Intended use and clinical context; target population
+   & \textbf{Met}
+   & Main, Sec.~Introduction: frontline WHO/IMCI-style screen runnable from a phone; explicit neonatal-referral policy.\\
+4  & Objectives: development, tuning, and/or validation
+   & \textbf{Met}
+   & Main, Sec.~Introduction (Contributions): develops PRISM-Breath and RespSalience with subject-disjoint internal validation. External validation is a controlled degradation simulation, not a real external video cohort (see Item~5a).\\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+Table~\ref{tab:tripod-b} covers the data, participants, outcome, predictors, sample size, and missing-data
+items. The subject-disjoint splitting and leakage handling are strengths of the study; data-provenance
+metadata (accrual dates), formal eligibility criteria, and outcome-assessment blinding are the reporting
+gaps.
+
+\begin{table*}[!tp]
+\caption{TRIPOD+AI checklist, Part 2 of 5: Methods --- data, participants, outcome, predictors, sample size,
+missing data.}
+\label{tab:tripod-b}\centering\footnotesize
+\begin{tabular}{@{}c >{\raggedright\arraybackslash}p{1.65in} >{\raggedright\arraybackslash}p{0.70in} >{\raggedright\arraybackslash}p{3.35in}@{}}
+\toprule
+Item & TRIPOD+AI item (abbreviated) & Status & Where addressed / notes\\\midrule
+5a & Sources of data (development/evaluation), rationale, representativeness
+   & \textbf{Partial}
+   & Main, Sec.~Datasets $+$ Table ``Datasets'': Pediatric-RR-332 (primary), AIR-125/400, NCHSDB (external), radar phantom $+$ 50 real children. Representativeness limited to a single-site cohort (Discussion). External validation is a camera-realistic \emph{degradation} of NCHSDB polysomnography belts (Sec.~External validation), not a real external video cohort.\\
+5b & Dates of participant accrual / data collection
+   & \textbf{Author-to-complete}
+   & Not stated; authors to add collection dates per cohort.\\
+6a & Study setting; number and location of centres
+   & \textbf{Partial}
+   & Three recording sites analysed (Supp.~Sec.~Subgroup and Fairness); care setting, country, and centre identities not stated.\\
+6b & Eligibility criteria for participants
+   & \textbf{Partial}
+   & Population stated: children aged $<5$~years presenting with cough or difficulty breathing at three
+Bangladeshi facilities (Institute of Child and Mother Health, an Upazila Health Complex, a Community
+Clinic), stratified by WHO age band ($<$2, 2--12, 12--60~mo) (Main, Sec.~Datasets). The precise
+enrolment inclusion/exclusion protocol and any exclusions remain author-to-confirm.\\
+6c & Treatments received by participants
+   & \textbf{N/A}
+   & Screening study; no intervention or treatment.\\
+7  & Data preparation, pre-processing, and quality checks
+   & \textbf{Met}
+   & Main, Sec.~Signal extraction (25~Hz common time base, 0.15--1.5~Hz band-limit); leakage-safe split-then-extract (Supp.~Sec.~Implementation and Reproducibility). Uniformity of pre-processing across skin-tone subgroups not audited (see Item~14).\\
+8a & Outcome definition (how and when assessed)
+   & \textbf{Met}
+   & WHO age-band tachypnea thresholds; ground truth $=$ manual breath counting (Main, Sec.~Introduction/Datasets). \emph{Proxy endpoint:} tachypnea is a screening sign, not diagnosed ARI/pneumonia (Discussion, Limitation~(iii); difficulty-breathing AUROC only $0.59$).\\
+8b & Blinding of outcome assessment
+   & \textbf{Not met}
+   & Blinding of the manual breath-counters to model predictions is not described.\\
+9  & Predictors: definition, how and when measured
+   & \textbf{Met}
+   & Main, Sec.~Signal extraction: monocular-depth respiration proxy, learned optical-flow waveform, audio spectrogram --- all measured automatically per video (no manual predictor assessment to blind).\\
+10 & Sample size: how determined and justified
+   & \textbf{Partial}
+   & Fixed cohort (332 infants); 298-subject matched subset for the paired baseline comparison; subject-disjoint five-fold CV (Main, Sec.~Protocol). No formal power/sample-size calculation; the neonatal subgroup is small ($n{=}29$, wide CIs, stated).\\
+11 & Handling of missing data
+   & \textbf{Partial}
+   & Reliability-/quality-weighted fusion implicitly downweights low-SNR or unavailable modalities (Main, Sec.~PRISM-Breath); no explicit missing-data imputation procedure is reported.\\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+Table~\ref{tab:tripod-c} covers the analytical methods, class imbalance, fairness, model output, and
+performance-evaluation items. Partitioning/leakage control, model specification, performance estimation with
+uncertainty, and recalibration are fully met; class-imbalance strategy and fairness (specifically skin-tone
+equity) are the honest gaps.
+
+\begin{table*}[!tp]
+\caption{TRIPOD+AI checklist, Part 3 of 5: Methods --- analytical methods, class imbalance, fairness, model
+output, performance evaluation, updating.}
+\label{tab:tripod-c}\centering\footnotesize
+\begin{tabular}{@{}c >{\raggedright\arraybackslash}p{1.65in} >{\raggedright\arraybackslash}p{0.70in} >{\raggedright\arraybackslash}p{3.35in}@{}}
+\toprule
+Item & TRIPOD+AI item (abbreviated) & Status & Where addressed / notes\\\midrule
+12a & Data partitioning; avoidance of leakage / unwanted resemblance
+    & \textbf{Met}
+    & Subject-disjoint five-fold, deterministic SHA-256 splits, split-then-extract (Main, Sec.~Protocol; Supp.~Sec.~Implementation). Explicit extractor-leakage audit with a \emph{retracted} TS-CAN result (Main, Sec.~``Extractor robustness and a retracted result'').\\
+12b & Handling of predictors in the analysis
+    & \textbf{Met}
+    & Per-modality encoding (spectral features, temporal scan, self-supervised pretraining) on canonical band-limited signals (Main, Sec.~Method).\\
+12c & Model type, all build steps, hyperparameter tuning, internal validation
+    & \textbf{Met}
+    & PRISM-Breath and RespSalience specified (Main, Sec.~Method); hyperparameters, SSL, and conformal settings (Supp.~Tables~S5--S6); best-validation-checkpoint selection; five-fold internal validation.\\
+12d & Handling of heterogeneity in estimates
+    & \textbf{Met}
+    & Per-fold, per-site, and per-age-band breakdowns (Supp.~Sec.~Per-Fold Results, Subgroup and Fairness).\\
+13  & Handling of class imbalance
+    & \textbf{Partial}
+    & Prevalence reported ($\sim$$0.26$ cohort; $0.155$ NCHSDB) and threshold-free AUROC/AUPRC plus prevalence-dependent PPV/NPV used (Main, Sec.~Calibration/equity; Supp.~Full Multi-Metric Comparison). No explicit resampling/reweighting strategy is stated.\\
+14  & Fairness / bias-mitigation approaches
+    & \textbf{Partial}
+    & Sex (no significant disparity), recording-site, and age-band subgroup analyses reported (Main, Sec.~Calibration/equity; Supp.~Sec.~Subgroup and Fairness). \textbf{Skin-tone/race equity is NOT auditable in a single-population cohort and is NOT mitigated} --- a stated limitation (Discussion, Limitation~(ii)); this specific fairness axis is \emph{Not met}.\\
+15  & Specification of the model output
+    & \textbf{Met}
+    & Outputs $=$ predicted RR, calibrated tachypnea probability (salience mass above the age threshold), and an age-conditional conformal interval (Main, Sec.~RespSalience / conformal triage).\\
+16  & Performance measures identified
+    & \textbf{Met}
+    & RR-MAE/RMSE; AUROC/AUPRC; sensitivity/specificity, Se@Sp90, Sp@Se90; ECE/Brier; decision-curve net benefit (Main, Sec.~Protocol; Supp.~Full Multi-Metric Comparison).\\
+17  & Performance estimation with uncertainty
+    & \textbf{Met}
+    & Subject-level bootstrap 95\% CIs; paired DeLong (AUROC) and exact McNemar (binary decision) (Main, Sec.~Protocol; Supp.~Sec.~Implementation).\\
+18  & Model updating / recalibration procedure
+    & \textbf{Met}
+    & Age-conditional (Mondrian) conformal recalibration replacing a mis-covering pooled interval (Main, Sec.~Age-conditional conformal triage; Supp.~Sec.~Calibration and Selective Prediction, Neonatal Escalation Pathway).\\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+Table~\ref{tab:tripod-d} covers the Results items. Event counts, subgroup performance with confidence
+intervals, and updating results are fully reported; a participant-flow diagram, a full demographic table, and
+a tabulated deployable model (weights) are the partial items.
+
+\begin{table*}[!tp]
+\caption{TRIPOD+AI checklist, Part 4 of 5: Results --- participants, model development, model specification,
+performance, updating.}
+\label{tab:tripod-d}\centering\footnotesize
+\begin{tabular}{@{}c >{\raggedright\arraybackslash}p{1.65in} >{\raggedright\arraybackslash}p{0.70in} >{\raggedright\arraybackslash}p{3.35in}@{}}
+\toprule
+Item & TRIPOD+AI item (abbreviated) & Status & Where addressed / notes\\\midrule
+19a & Flow of participants; numbers with/without outcome (ideally a diagram)
+    & \textbf{Partial}
+    & Per-fold $n$ and positive counts reported (Supp.~Table~S1: $n{=}332$, 86 positive; NCHSDB $n{=}65$, $1{,}028$ windows). No participant-flow (CONSORT-style) diagram or explicit accounting of exclusions.\\
+19b & Participant characteristics (demographics, predictors, outcome)
+    & \textbf{Partial}
+    & Reported (Main, Sec.~Datasets): $n{=}332$, age $0$--$59$~mo (mean $18$), $195$ male / $137$ female,
+three named sites ($137$/$92$/$103$), RR $16$--$96.5$~breath/min, tachypnea prevalence $25.3\%$; per-band
+and per-site breakdowns in Supp.~(Subgroup, Equity). A single consolidated demographic table and race/skin
+tone are not recorded.\\
+19c & Comparison of evaluation-set vs.\ development-set data
+    & \textbf{Partial}
+    & NCHSDB external cohort described narratively (65 infants, age split, prevalence 15.5\%, non-circular label; Main, Sec.~External validation). Not a side-by-side characteristics comparison.\\
+20a & Number of participants and outcome events in each analysis
+    & \textbf{Met}
+    & 332 full / 298 matched / per-fold counts / NCHSDB windows all reported (Main $+$ Supp.).\\
+20b & Unadjusted predictor--outcome associations
+    & \textbf{Met}
+    & Raw extracted flow (FFT, no encoder) AUROC $0.723$; raw predicted-rate AUROC; full component isolation (Main, Sec.~``Where the performance comes from''; Table ``Component isolation'').\\
+21  & Full model presentation enabling individual predictions
+    & \textbf{Partial}
+    & Architecture and hyperparameters fully specified (Main, Sec.~Method; Supp.~Tables~S5--S6), but trained weights/coefficients are not tabulated; exact reproduction depends on code/checkpoint release (see Item~26b, Author-to-complete).\\
+22  & Performance with CIs, including subgroups / fairness
+    & \textbf{Met}
+    & Tables ``Clinical operating points'', ``PRISM vs.\ extractors'', per-age-band, calibration, decision-curve, and subgroup --- all with 95\% CIs (Main $+$ Supp.).\\
+23  & Results of any model updating
+    & \textbf{Met}
+    & Age-conditional conformal / escalation results: referral rates by band and retained-case screening (Supp.~Sec.~Neonatal Escalation Pathway; Main, Sec.~Age bands).\\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+Table~\ref{tab:tripod-e} covers the Discussion and Other-information items. Interpretation, limitations, and
+implications are strengths; the administrative items (registration, funding, ethics/IRB, conflicts, and a
+formal data/code-availability statement) are marked Author-to-complete because they are not present in the
+manuscript and must not be fabricated.
+
+\begin{table*}[!tp]
+\caption{TRIPOD+AI checklist, Part 5 of 5: Discussion and Other information.}
+\label{tab:tripod-e}\centering\footnotesize
+\begin{tabular}{@{}c >{\raggedright\arraybackslash}p{1.65in} >{\raggedright\arraybackslash}p{0.70in} >{\raggedright\arraybackslash}p{3.35in}@{}}
+\toprule
+Item & TRIPOD+AI item (abbreviated) & Status & Where addressed / notes\\\midrule
+\multicolumn{4}{@{}l}{\emph{Discussion}}\\
+24  & Overall interpretation in context of objectives and prior evidence
+    & \textbf{Met}
+    & Main, Sec.~Discussion: metric reframing, component isolation, and comparison to published $\sim$$2.9$~MAE infant methods.\\
+25  & Limitations
+    & \textbf{Met}
+    & Main, Sec.~Discussion, Limitations (i)--(v): single-site cohort, manual-count ground truth, no external tachypnea \emph{video} cohort, skin-tone equity, proxy endpoint, radar not yet on neonates, retracted leakage result.\\
+26a & Intended clinical use and users
+    & \textbf{Met}
+    & Main, Sec.~Discussion, ``Clinical translation'': a $\ge$2mo triage signal with mandatory neonatal referral and calibrated abstention.\\
+26b & Model / code / data accessibility
+    & \textbf{Author-to-complete}
+    & Reproducibility procedures described (Main, Sec.~Reproducibility; Supp.~Sec.~Implementation; repository scripts). A formal data- and code-availability statement (repository URL, license) is not yet in the manuscript; some data are access-controlled (NCHSDB $=$ PhysioNet credentialed).\\
+26c & Barriers to implementation; further research
+    & \textbf{Met}
+    & Main, Sec.~Discussion: integrated RGB$+$radar device, prospective outcome-anchored multi-site study, real-neonate-in-crib validation.\\\midrule
+\multicolumn{4}{@{}l}{\emph{Other information}}\\
+27a & Computational environment / software \& hardware (AI item)
+    & \textbf{Met}
+    & Supp.~Sec.~Implementation and Reproducibility: PyTorch~2.8 (CUDA~12.9), Python~3.13, NVIDIA Quadro RTX~8000; extractor and SSL settings.\\
+27b & Study registration and protocol availability
+    & \textbf{Author-to-complete}
+    & No registration or protocol reference in the manuscript.\\
+27c & Funding
+    & \textbf{Author-to-complete}
+    & No funding statement present.\\
+27d & Ethical approval / IRB
+    & \textbf{Author-to-complete}
+    & No ethics/IRB statement in the manuscript; pediatric human-subjects video requires an approval statement (do not fabricate a number).\\
+27e & Conflicts of interest
+    & \textbf{Author-to-complete}
+    & Not stated.\\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\noindent\textbf{Validation-status summary and roadmap.} Read together, the checklist shows an internally
+validated model with strong leakage control, calibration, and uncertainty reporting, but with clearly bounded
+external and clinical validation. The items we mark \emph{Not met} or only \emph{Partial} for scientific
+(not administrative) reasons define the remaining work, in priority order: (1)~\textbf{a real external video
+cohort with genuine tachypnea} --- present external validation is a camera-realistic \emph{degradation
+simulation} on NCHSDB polysomnography belts (Item~5a), not a camera-on-external-cohort result;
+(2)~\textbf{prospective / clinical validation} --- the study is retrospective, and the outcome is the WHO
+tachypnea proxy rather than a diagnosed ARI/pneumonia endpoint (Items~4, 8a);
+(3)~\textbf{a skin-tone / race fairness audit} --- not auditable in the single-population cohort and not yet
+mitigated (Item~14); and (4)~\textbf{outcome-assessment blinding} against manual-count reference error
+(Item~8b). The \emph{Author-to-complete} items (accrual dates, registration, funding, ethics/IRB, conflicts,
+and a formal data/code-availability statement; Items~5b, 26b, 27b--27e) are administrative and must be filled
+in by the authors --- with a genuine ethics approval and funding source --- before submission.
