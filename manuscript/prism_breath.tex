@@ -39,9 +39,9 @@ confidence intervals, and paired DeLong/McNemar tests, we compare five published
 PRISM-Breath, a reliability-weighted multimodal (depth, optical-flow, audio) model with self-supervised
 pretraining, calibrated tachypnea head, and age-conditional conformal triage. \textbf{Results:} The four
 extractors match or beat PRISM on RR-MAE yet are all significantly worse on tachypnea area-under-ROC
-(AUROC $0.874$ vs.\ $0.726$--$0.777$; DeLong $p\le0.006$)---raw MAE is not clinical utility. An
-ablation localizes the advantage to self-supervised pretraining and spectral/temporal encoding; a
-\emph{lean} model that drops a prototype bank, a codebook, and a heteroscedastic head performs
+(AUROC $0.874$ vs.\ $0.726$--$0.777$; DeLong $p\le0.006$)---raw MAE is not clinical utility. Under paired
+comparison no single component is individually load-bearing (every ablation's $\Delta$AUROC CI includes
+zero), so a \emph{lean} model that drops a prototype bank, a codebook, and a heteroscedastic head performs
 identically. A component isolation instead localizes the performance to the per-modality \emph{encoder}: the raw
 extracted flow discriminates tachypnea at only AUROC $0.72$ (FFT), a self-supervised spectral-temporal
 encoder lifts this to $0.87$ ($p<10^{-4}$), and the deep fusion head adds nothing ($0.88$; a logistic
@@ -551,11 +551,14 @@ distribution, all $>0$).}\label{fig:extval}
 \end{figure}
 
 \subsection{Ablations and the lean model}\label{sec:abl}
-Table~\ref{tab:abl} lists component contributions under the pooled five-fold protocol. Removing
-self-supervised pretraining is the most damaging ($-0.11$ sensitivity, $-0.017$ AUROC); removing spectral
-features, the scan block, or separate trunks each costs sensitivity; removing the prototype bank, the
-codebook, or the heteroscedastic head changes the clinical endpoint negligibly. PRISM-Breath-Lean
-(all three removed) matches the full model (Fig.~\ref{fig:abl}), giving an Occam-clean design. A flow-only
+Table~\ref{tab:abl} lists component contributions under the pooled five-fold protocol. Under \emph{paired}
+comparison with subject-bootstrap CIs, however, no single component is individually load-bearing: every
+removal's $\Delta$AUROC confidence interval includes zero (supplementary material), including
+self-supervised pretraining ($\Delta$AUROC $-0.013$, DeLong $p=0.55$) and the spectral features ($p=0.07$).
+Fixed-threshold sensitivity shifts more---it is operating-point sensitive---but discrimination does not.
+This is precisely why PRISM-Breath-Lean (prototype bank, codebook, and heteroscedastic head removed) matches
+the full model (Fig.~\ref{fig:abl}), an Occam-clean design; discrimination localizes instead to the encoder
+as a whole and the classification objective, not to any single block. A flow-only
 configuration (depth and audio disabled) still beats EfficientPhys on AUROC ($0.860$, $p=0.002$),
 localizing the win to the head rather than the extra modalities. The screen is also robust to
 training-set size: on nested subject subsamples, tachypnea AUROC saturates by $50$--$75\%$ of the training

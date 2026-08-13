@@ -213,3 +213,45 @@ $100\%$ & 0.86 & 0.86 & 7.1  & 6.5\\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\subsection{Ablations as Hypotheses, with Paired Confidence Intervals}
+Rather than reading raw metric shifts as evidence, we test the ablations as hypotheses under \emph{paired}
+subject-bootstrap comparison (Table~\ref{tab:ablh}). \textbf{H1 (representation):} the learned encoder
+\emph{as a whole} is decisively load-bearing---raw-flow FFT discriminates tachypnea at AUROC $0.72$, and the
+self-supervised spectral-temporal encoder lifts this to $0.87$ ($p<10^{-4}$; main-paper component
+isolation)---yet no individual encoder \emph{block} is: removing the spectral features or the scan block
+leaves AUROC within noise. \textbf{H2 (objective):} the classification/distributional objective is
+load-bearing on a \emph{frozen} encoder ($0.833\to0.880$, DeLong $p=0.026$; main paper). \textbf{H3
+(context):} age enters both as a model input and through age-conditional conformal calibration; we did not
+isolate it with a dedicated ablation and flag this as a gap. \textbf{H4 (pretraining):} self-supervised
+pretraining is \emph{not} individually significant on the full model ($\Delta$AUROC $-0.013$, $p=0.55$); its
+benefit is modest and concentrated on RR-MAE and the low-label regime (Sec.~data efficiency) and on the
+salience variant ($+0.015$). The decisive point for a small cohort: \emph{every} single-component ablation
+has a paired $\Delta$AUROC CI that includes zero, so none is individually ``load-bearing''---which is exactly
+why the lean model matches the full one. Discrimination is carried by the encoder-as-a-whole (H1) and the
+decision framing (H2), not by any one auxiliary block.
+
+\begin{table}[!t]\centering\small
+\caption{Ablations as hypotheses: paired $\Delta$AUROC (full $-$ ablated) with subject-bootstrap $95\%$ CI
+and DeLong $p$, corrected pediatric-297. \emph{Every} CI includes zero---no single component is individually
+load-bearing.}
+\label{tab:ablh}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Component removed & Ablated AUROC & $\Delta$AUROC $[95\%$ CI$]$ & DeLong $p$\\
+\midrule
+Spectral features        & 0.885 & $-0.034\,[-0.071,+0.001]$ & 0.071\\
+Scan block               & 0.854 & $-0.003\,[-0.040,+0.032]$ & 0.893\\
+Separate trunks          & 0.878 & $-0.026\,[-0.062,+0.006]$ & 0.149\\
+Prototype bank           & 0.839 & $+0.012\,[-0.019,+0.044]$ & 0.458\\
+Codebook                 & 0.866 & $-0.014\,[-0.051,+0.023]$ & 0.462\\
+Heteroscedastic head     & 0.873 & $-0.021\,[-0.051,+0.006]$ & 0.169\\
+Self-supervised pretrain & 0.865 & $-0.013\,[-0.057,+0.029]$ & 0.553\\
+Modality dropout         & 0.875 & $-0.023\,[-0.055,+0.006]$ & 0.133\\
+Lean (proto$+$code$+$het off) & 0.866 & $-0.014\,[-0.047,+0.015]$ & 0.365\\
+\midrule
+\multicolumn{4}{@{}l}{Full PRISM (reference): AUROC $0.852$, $n{=}297$}\\
+\bottomrule
+\end{tabular}
+\end{table}
