@@ -46,9 +46,10 @@ identically. A component isolation instead localizes the performance to the per-
 extracted flow discriminates tachypnea at only AUROC $0.72$ (FFT), a self-supervised spectral-temporal
 encoder lifts this to $0.87$ ($p<10^{-4}$), and the deep fusion head adds nothing ($0.88$; a logistic
 regression on the encoder outputs matches it). Going further, reframing the task as direct \emph{classification of the
-signal} (in its strongest form, a learned distribution over rates) rather than rate regression is the largest single gain---AUROC $0.92$--$0.93$, robust across a
-purpose-built salience network, its self-supervised variant, and a generic random-kernel classifier---and
-it recovers neonatal discrimination that regression loses ($0.62$ to $0.88$). The current RGB
+signal} (in its strongest form, a learned distribution over rates) rather than rate regression is the largest single gain: on one \emph{fixed} representation it lifts AUROC
+from $0.833$ to $0.880$ (DeLong $p=0.026$), and realized as a calibrated salience network it reaches
+$0.88$--$0.90$ across three seeds (self-supervised pretraining giving the significant edge), while
+recovering \emph{some} of the neonatal discrimination that regression loses (exploratory). The current RGB
 optical-flow pipeline saturates near $35$~breaths/min for true neonatal rates of
 $60$--$80$, so every camera extractor we tested misses neonatal tachypnea; we therefore report a calibrated screen
 for children $\ge$2~months (sensitivity $0.71$, AUROC $0.919$, expected calibration error $0.064$,
@@ -327,19 +328,22 @@ Logistic regression on encoder outputs & 0.894 & n.s.\ vs.\ head\\\bottomrule
 Sections~\ref{sec:sota}--\ref{sec:simple} operate within the prevailing paradigm---estimate a rate, then
 threshold. Table~\ref{tab:framing} and Fig.~\ref{fig:isolation} show that abandoning it is the single largest gain in
 this paper.
-Reframing tachypnea as \emph{classification of the raw respiratory signal} (RespSalience,
-Sec.~\ref{sec:respsal}) beats even PRISM's learned tachypnea head, raising AUROC from $0.881$ to
-$0.925$ (DeLong $p=0.022$); against \emph{pure} rate-then-threshold regression ($0.830$) the framing
-gain is larger still ($+0.095$).
+Reframing tachypnea as \emph{classification of the raw respiratory signal} rather than
+rate-then-threshold regression is the paper's largest single lever, and its cleanest evidence is the
+frozen-encoder objective comparison (Sec.~\ref{sec:objective}): on one \emph{fixed} representation,
+replacing an L1-regression head with a classification objective raises AUROC from $0.833$ to $0.880$
+(DeLong $p=0.026$) at equal or worse RR-MAE.
 To rule out an unfair head-to-head, every published extractor is scored three equivalent ways in the
 supplement---raw-RR ranking, RR-minus-threshold margin, and a discriminative read-out---and PRISM leads on
 all three, so its advantage is not an artefact of giving PRISM alone a specialized classification head.
-The gain is \emph{architecture-agnostic}: a purpose-built salience network ($0.925$), the same network
-with self-supervised pretraining ($0.930$), and a generic random-convolution classifier
-(ROCKET~\cite{rocket}, $0.915$) are statistically indistinguishable from one another (all pairwise
-$p>0.3$) while each significantly beats every regression baseline. The improvement is thus a property of
-the framing, not of any particular model---a robust, transferable finding rather than a fragile
-architecture claim.
+We realize this framing as a calibrated salience network (RespSalience, Sec.~\ref{sec:respsal}). Across
+\emph{three seeds} on the matched corrected cohort it reaches AUROC $0.884{\pm}0.020$, and its
+self-supervised variant $0.899{\pm}0.035$, versus $0.852$ for the regression-trained PRISM on the same
+subjects: \emph{every} seed exceeds regression, the SSL variant significantly so on two of three seeds
+(DeLong $p=0.001$--$0.016$), while a generic random-convolution classifier (ROCKET~\cite{rocket}, $0.915$
+on the full split) lands in the same band. No single classifier is clearly best; the improvement is a
+property of the decision \emph{framing}, not of any particular architecture---a transferable finding rather
+than a fragile architecture claim, of which the same-encoder result above is the most controlled form.
 
 The gain is also \emph{threshold-agnostic}, and we can say precisely when it is large. Sweeping the
 decision cutoff across the observed range ($22$--$64$~breaths/min) gives a positive
@@ -380,19 +384,21 @@ supporting evidence, not a neonatal screening claim---all neonates remain on man
 recommend the salience network for deployment: unlike ROCKET it is calibrated out of the box (ECE $0.053$,
 Brier $0.092$), returns an interpretable rate, and is ceiling-free.
 
-\begin{table*}[!t]\caption{Reframing tachypnea as signal classification is the largest single gain, and it
-is architecture-agnostic (the three classifiers are mutually indistinguishable, all pairwise $p>0.3$).
-Pooled subject-disjoint five-fold; $332$ subjects except the extractor row ($298$ matched subset).
-DeLong vs.\ PRISM's tachypnea head.}\label{tab:framing}\centering\small
+\begin{table*}[!t]\caption{Reframing tachypnea as signal classification is the largest single gain, and no
+single classifier is clearly best. Regression rows: pooled subject-disjoint five-fold on $332$ subjects
+($298$ for the extractor row), DeLong vs.\ PRISM's tachypnea head. $^{\dagger}$Salience rows are three-seed
+mean$\pm$SD retrained under corrected labels on the matched $297$-subject set; the $p$ range is per-seed
+DeLong vs.\ the regression-trained PRISM on that same set (AUROC $0.852$)---every seed beats regression,
+SSL significantly on two of three. $^{\ddagger}$ROCKET is a single run on the $332$ split.}\label{tab:framing}\centering\small
 \begin{tabular}{@{}llcc@{}}\toprule
 Paradigm & Model & AUROC & $p$ vs.\ PRISM\\\midrule
 \multirow{4}{*}{Regression $\to$ threshold} & Published extractors ($298$) & 0.73--0.78 & ---\\
  & PRISM rate $\to$ threshold & 0.830 & ---\\
  & PRISM encoder (flow) & 0.873 & ---\\
  & Full PRISM (tachy head) & 0.881 & ref\\\midrule
-\multirow{3}{*}{\textbf{Classification (ours)}} & ROCKET (random kernels) & 0.915 & $0.030$\\
- & \textbf{Salience network} & \textbf{0.925} & $\mathbf{0.022}$\\
- & Salience $+$ SSL pretrain & 0.930 & $0.013$\\\bottomrule
+\multirow{3}{*}{\textbf{Classification (ours)}} & ROCKET (random kernels)$^{\ddagger}$ & 0.915 & $0.030$\\
+ & \textbf{Salience network}$^{\dagger}$ & \textbf{0.884$\pm$0.020} & $0.10$--$0.62$\\
+ & Salience $+$ SSL$^{\dagger}$ & 0.899$\pm$0.035 & $\mathbf{0.001}$--$0.73$\\\bottomrule
 \end{tabular}\end{table*}
 
 \begin{figure}[!t]\centering
