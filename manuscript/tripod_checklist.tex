@@ -172,11 +172,11 @@ Item & TRIPOD+AI item (abbreviated) & Status & Where addressed / notes\\\midrule
     & \textbf{Partial}
     & Per-fold $n$ and positive counts reported (Supp.~Table~S1: $n{=}332$, 86 positive; NCHSDB $n{=}65$, $1{,}028$ windows). No participant-flow (CONSORT-style) diagram or explicit accounting of exclusions.\\
 19b & Participant characteristics (demographics, predictors, outcome)
-    & \textbf{Partial}
+    & \textbf{Met}
     & Reported (Main, Sec.~Datasets): $n{=}332$, age $0$--$59$~mo (mean $18$), $195$ male / $137$ female,
-three named sites ($137$/$92$/$103$), RR $16$--$96.5$~breath/min, tachypnea prevalence $25.3\%$; per-band
-and per-site breakdowns in Supp.~(Subgroup, Equity). A single consolidated demographic table and race/skin
-tone are not recorded.\\
+three named sites ($137$/$92$/$103$), RR $16$--$96.5$~breath/min, tachypnea prevalence $25.3\%$; a
+consolidated by-stratum table with event counts (age band, sex, site) is given in Supp.~(Worst-Group
+Performance). Race/skin tone are not recorded (single-population cohort).\\
 19c & Comparison of evaluation-set vs.\ development-set data
     & \textbf{Partial}
     & NCHSDB external cohort described narratively (65 infants, age split, prevalence 15.5\%, non-circular label; Main, Sec.~External validation). Not a side-by-side characteristics comparison.\\
@@ -200,9 +200,10 @@ tone are not recorded.\\
 \end{table*}
 
 Table~\ref{tab:tripod-e} covers the Discussion and Other-information items. Interpretation, limitations, and
-implications are strengths; the administrative items (registration, funding, ethics/IRB, conflicts, and a
-formal data/code-availability statement) are marked Author-to-complete because they are not present in the
-manuscript and must not be fabricated.
+implications are strengths. Code availability is now met (public repository); the remaining administrative
+items (registration, funding, ethics/IRB, conflicts) appear as \emph{placeholders} in the main-paper
+``Declarations'' section and stay marked Author-to-complete because their genuine values must be supplied by
+the authors and must not be fabricated.
 
 \begin{table*}[!tp]
 \caption{TRIPOD+AI checklist, Part 5 of 5: Discussion and Other information.}
@@ -221,8 +222,11 @@ Item & TRIPOD+AI item (abbreviated) & Status & Where addressed / notes\\\midrule
     & \textbf{Met}
     & Main, Sec.~Discussion, ``Clinical translation'': a $\ge$2mo triage signal with mandatory neonatal referral and calibrated abstention.\\
 26b & Model / code / data accessibility
-    & \textbf{Author-to-complete}
-    & Reproducibility procedures described (Main, Sec.~Reproducibility; Supp.~Sec.~Implementation; repository scripts). A formal data- and code-availability statement (repository URL, license) is not yet in the manuscript; some data are access-controlled (NCHSDB $=$ PhysioNet credentialed).\\
+    & \textbf{Partial}
+    & Code publicly released at \texttt{github.com/imranrimon/PRISM-Breath} with a data- and
+code-availability statement (Main, ``Data and code availability''); architecture/hyperparameters fully
+specified (Supp.~Tables~S5--S6). Dataset access terms for Pediatric-RR-332 and checkpoint release remain
+author-to-complete; some data are access-controlled (NCHSDB $=$ PhysioNet credentialed).\\
 26c & Barriers to implementation; further research
     & \textbf{Met}
     & Main, Sec.~Discussion: integrated RGB$+$radar device, prospective outcome-anchored multi-site study, real-neonate-in-crib validation.\\\midrule
@@ -256,6 +260,17 @@ simulation} on NCHSDB polysomnography belts (Item~5a), not a camera-on-external-
 tachypnea proxy rather than a diagnosed ARI/pneumonia endpoint (Items~4, 8a);
 (3)~\textbf{a skin-tone / race fairness audit} --- not auditable in the single-population cohort and not yet
 mitigated (Item~14); and (4)~\textbf{outcome-assessment blinding} against manual-count reference error
-(Item~8b). The \emph{Author-to-complete} items (accrual dates, registration, funding, ethics/IRB, conflicts,
-and a formal data/code-availability statement; Items~5b, 26b, 27b--27e) are administrative and must be filled
-in by the authors --- with a genuine ethics approval and funding source --- before submission.
+(Item~8b). The \emph{Author-to-complete} items (accrual dates, registration, funding, ethics/IRB, conflicts;
+Items~5b, 27b--27e) now have placeholders in the main-paper ``Declarations'' section, and the code is
+released (Item~26b); they are administrative and must be filled in by the authors --- with a genuine ethics
+approval and funding source --- before submission.
+
+\medskip
+\noindent\textbf{STARD-AI note.} As a diagnostic-accuracy evaluation, the study also aligns with the
+STARD-AI reporting principles for AI diagnostic studies: the index test (the calibrated tachypnea
+probability and its age-conditional decision), the reference standard (WHO age-band tachypnea from a manual
+respiratory-rate count), participant flow and event counts (Supp.~per-fold tables), diagnostic-accuracy
+estimates with $95\%$ confidence intervals (sensitivity, specificity, PPV, NPV, Se@Sp90, Sp@Se90), and the
+handling of indeterminate results (the conformal abstention / escalation pathway) are all reported. The
+reference-standard limitations---a single manual counter and no recorded assessor blinding---are the
+corresponding STARD-AI gaps, shared with TRIPOD+AI Items~8a--8b, and are stated in the Discussion.
