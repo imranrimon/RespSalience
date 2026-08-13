@@ -551,7 +551,10 @@ features, the scan block, or separate trunks each costs sensitivity; removing th
 codebook, or the heteroscedastic head changes the clinical endpoint negligibly. PRISM-Breath-Lean
 (all three removed) matches the full model (Fig.~\ref{fig:abl}), giving an Occam-clean design. A flow-only
 configuration (depth and audio disabled) still beats EfficientPhys on AUROC ($0.860$, $p=0.002$),
-localizing the win to the head rather than the extra modalities.
+localizing the win to the head rather than the extra modalities. The screen is also robust to
+training-set size: on nested subject subsamples, tachypnea AUROC saturates by $50$--$75\%$ of the training
+subjects and self-supervised pretraining chiefly improves RR-MAE (supplementary material), so the model is
+not starved for data at this cohort size.
 
 \subsection{Extractor robustness and a retracted result}
 The clinical result is robust to the flow backbone: a TS-CAN-derived flow gives AUROC $0.897$ under a
