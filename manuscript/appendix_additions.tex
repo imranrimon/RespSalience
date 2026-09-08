@@ -183,7 +183,7 @@ $0.81$--$0.82$ everywhere, at the cost of admitting how wide the neonatal interv
 ($\pm19$ vs.\ $\pm7$ breath/min for $12$--$60$mo)---an interval so wide it amounts to a deferral, which is
 the honest read-out of that band and is what the escalation pathway (Section~\ref{app:escalation}) acts on.
 
-\begin{table}[!t]
+\begin{table*}[!t]
 \caption{Conformal coverage by age band, pooled vs.\ age-conditional (Mondrian), $\alpha{=}0.20$
 (nominal $0.80$), leave-one-fold-out calibration on the $332$-subject cohort. The pooled interval meets
 its target overall while missing it in both directions per band; ``UNDER''/``OVER'' flag mis-coverage.
@@ -198,7 +198,7 @@ $<2$mo   & 38  & 0.58 & 9.5 & under & 0.82 & 19.2\\
 2--12mo  & 134 & 0.78 & 9.5 & ok    & 0.81 & 10.4\\
 12--60mo & 160 & 0.87 & 9.5 & over  & 0.81 & 7.1\\\bottomrule
 \end{tabular}
-\end{table}
+\end{table*}
 
 Table~\ref{tab:riskcov} compares two abstention signals on the risk--coverage curve. Ranking cases by
 probability confidence lowers the tachypnea error from $0.161$ at full coverage to $0.061$ when the most
@@ -652,7 +652,8 @@ on this cohort, where the live modalities have similar signal quality.
 
 \subsection{Cross-dataset generalization}
 Trained on Pediatric-RR and evaluated on the external AIR-400 infant cohort, PRISM attains RR-MAE $3.12$,
-competitive with the infant-specific SOTA~\cite{infant_air}; in-domain on AIR-400 it reaches $2.93$.
+competitive with the infant-specific state of the art (see the main paper); in-domain on AIR-400 it
+reaches $2.93$.
 Hand-crafted optical flow collapses out of domain ($11.3$--$11.8$), which justifies the learned flow
 channel (cross-dataset table, main paper).
 

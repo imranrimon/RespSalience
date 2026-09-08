@@ -24,19 +24,19 @@ Correlation across folds is weak evidence, so we ran the intervention. Two compl
 identical in data, folds, architecture, budget and seed, differing \emph{only} in the selection rule
 (Table~\ref{tab:selection}):
 
-\begin{table}[!t]
+\begin{table*}[!t]
 \caption{Checkpoint selection, held-out test performance ($n{=}332$, 84 positive). The two criteria move
 the two metrics in opposite directions. Paired DeLong for AUROC; paired Wilcoxon on per-subject absolute
 error for MAE.}
 \label{tab:selection}\centering\small
 \begin{tabular}{@{}lccc@{}}\toprule
  & val-MAE selection & val-AUROC selection & paired test\\\midrule
-Tachypnea AUROC   & 0.827 & \textbf{0.850} & ${+}0.023\,[{-}0.013,{+}0.061]$, $p=0.22$\
-RR-MAE (br/min)   & \textbf{6.22} & 6.90 & ${+}0.68$, $p=1{\times}10^{-4}$\
-Sens / Spec @ WHO & 0.55 / 0.92 & 0.55 / 0.92 & 32 decisions flip, 16 each way\
-Folds won (AUROC) & 1 / 5 & \textbf{4 / 5} & ---\\bottomrule
+Tachypnea AUROC   & 0.827 & \textbf{0.850} & ${+}0.023\,[{-}0.013,{+}0.061]$, $p=0.22$\\
+RR-MAE (br/min)   & \textbf{6.22} & 6.90 & ${+}0.68$, $p=1{\times}10^{-4}$\\
+Sens / Spec @ WHO & 0.55 / 0.92 & 0.55 / 0.92 & 32 decisions flip, 16 each way\\
+Folds won (AUROC) & 1 / 5 & \textbf{4 / 5} & ---\\\bottomrule
 \end{tabular}
-\end{table}
+\end{table*}
 
 Only the MAE cost is significant. The honest summary is therefore not ``selecting on AUROC is better'':
 it is that \emph{selecting on regression error reliably buys about $0.7$ breaths/min of RR-MAE and gives

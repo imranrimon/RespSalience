@@ -188,7 +188,9 @@ Performance). Race/skin tone are not recorded (single-population cohort).\\
     & Raw extracted flow (FFT, no encoder) AUROC $0.723$; raw predicted-rate AUROC; full component isolation (Main, Sec.~``Where the performance comes from''; Table ``Component isolation'').\\
 21  & Full model presentation enabling individual predictions
     & \textbf{Partial}
-    & Architecture and hyperparameters fully specified (Main, Sec.~Method; Supp.~Tables~S5--S6), but trained weights/coefficients are not tabulated; exact reproduction depends on code/checkpoint release (see Item~26b, Author-to-complete).\\
+    & Architecture and hyperparameters fully specified (Main, Sec.~Method; Supp.~Tables~S5--S6). The
+weights are not tabulated in print, which is impractical for a network, but they are released in
+full (Item~26b, \texttt{10.5281/zenodo.22657054}), so individual predictions are reproducible.\\
 22  & Performance with CIs, including subgroups / fairness
     & \textbf{Met}
     & Tables ``Clinical operating points'', ``PRISM vs.\ extractors'', per-age-band, calibration, decision-curve, and subgroup --- all with 95\% CIs (Main $+$ Supp.).\\
@@ -200,10 +202,10 @@ Performance). Race/skin tone are not recorded (single-population cohort).\\
 \end{table*}
 
 Table~\ref{tab:tripod-e} covers the Discussion and Other-information items. Interpretation, limitations, and
-implications are strengths. Code availability is now met (public repository); the remaining administrative
-items (registration, funding, ethics/IRB, conflicts) appear as \emph{placeholders} in the main-paper
-``Declarations'' section and stay marked Author-to-complete because their genuine values must be supplied by
-the authors and must not be fabricated.
+implications are strengths. Code and weight availability are met (public repository; weights under
+\texttt{10.5281/zenodo.22657054}), and the four administrative items (registration, funding,
+ethics/IRB, conflicts) are now written in the main paper's ``Declarations'' section. One item
+remains outstanding: the per-cohort recording dates, which we do not hold and will not invent.
 
 \begin{table*}[!tp]
 \caption{TRIPOD+AI checklist, Part 5 of 5: Discussion and Other information.}
@@ -223,10 +225,11 @@ Item & TRIPOD+AI item (abbreviated) & Status & Where addressed / notes\\\midrule
     & Main, Sec.~Discussion, ``Clinical translation'': a $\ge$2mo triage signal with mandatory neonatal referral and calibrated abstention.\\
 26b & Model / code / data accessibility
     & \textbf{Partial}
-    & Code publicly released at \texttt{github.com/imranrimon/PRISM-Breath} with a data- and
+    & Code publicly released at \texttt{github.com/imranrimon/RespSalience} with a data- and
 code-availability statement (Main, ``Data and code availability''); architecture/hyperparameters fully
-specified (Supp.~Tables~S5--S6). Dataset access terms for Pediatric-RR-332 and checkpoint release remain
-author-to-complete; some data are access-controlled (NCHSDB $=$ PhysioNet credentialed).\\
+specified (Supp.~Tables~S5--S6). Pediatric-RR-332 is public (Mendeley \texttt{10.17632/72dd3rkttf})
+and the trained weights are archived at \texttt{10.5281/zenodo.22657054}; some data remain
+access-controlled (NCHSDB $=$ PhysioNet credentialed).\\
 26c & Barriers to implementation; further research
     & \textbf{Met}
     & Main, Sec.~Discussion: integrated RGB$+$radar device, prospective outcome-anchored multi-site study, real-neonate-in-crib validation.\\\midrule
@@ -235,17 +238,23 @@ author-to-complete; some data are access-controlled (NCHSDB $=$ PhysioNet creden
     & \textbf{Met}
     & Supp.~Sec.~Implementation and Reproducibility: PyTorch~2.8 (CUDA~12.9), Python~3.13, NVIDIA Quadro RTX~8000; extractor and SSL settings.\\
 27b & Study registration and protocol availability
-    & \textbf{Author-to-complete}
-    & No registration or protocol reference in the manuscript.\\
+    & \textbf{Met}
+    & Main, ``Declarations'': retrospective secondary analysis of existing cohorts, not a clinical
+trial and not prospectively registered; the analysis plan was not pre-registered and
+pre-specified versus exploratory analyses are marked throughout.\\
 27c & Funding
-    & \textbf{Author-to-complete}
-    & No funding statement present.\\
+    & \textbf{Met}
+    & Main, ``Declarations'': no specific grant from any funding agency in the public, commercial,
+or not-for-profit sectors.\\
 27d & Ethical approval / IRB
-    & \textbf{Author-to-complete}
-    & No ethics/IRB statement in the manuscript; pediatric human-subjects video requires an approval statement (do not fabricate a number).\\
+    & \textbf{Met}
+    & Main, ``Declarations'': no new human-subjects data were collected; this is a secondary
+analysis of de-identified datasets, ethical approval and consent for the original collection
+rest with the source studies, and no additional institutional review was sought.\\
 27e & Conflicts of interest
-    & \textbf{Author-to-complete}
-    & Not stated.\\
+    & \textbf{Met}
+    & Main, ``Declarations'': the author declares no competing financial or non-financial
+interests.\\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -260,10 +269,10 @@ simulation} on NCHSDB polysomnography belts (Item~5a), not a camera-on-external-
 tachypnea proxy rather than a diagnosed ARI/pneumonia endpoint (Items~4, 8a);
 (3)~\textbf{a skin-tone / race fairness audit} --- not auditable in the single-population cohort and not yet
 mitigated (Item~14); and (4)~\textbf{outcome-assessment blinding} against manual-count reference error
-(Item~8b). The \emph{Author-to-complete} items (accrual dates, registration, funding, ethics/IRB, conflicts;
-Items~5b, 27b--27e) now have placeholders in the main-paper ``Declarations'' section, and the code is
-released (Item~26b); they are administrative and must be filled in by the authors --- with a genuine ethics
-approval and funding source --- before submission.
+(Item~8b). Of the administrative items, registration, funding, ethics/IRB and conflicts
+(Items~27b--27e) are now written in the main-paper ``Declarations'' section, and code and weights
+are released (Item~26b). One remains outstanding: the per-cohort accrual dates (Item~5b), which
+we do not hold for a secondary analysis of released datasets and will not invent.
 
 \medskip
 \noindent\textbf{STARD-AI note.} As a diagnostic-accuracy evaluation, the study also aligns with the
