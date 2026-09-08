@@ -172,45 +172,85 @@ if __name__ == "__main__":
     # ---- 6. Figure: (a) bradypnea reg-vs-cls bars per backbone  (b) sweep gain vs threshold ----
     try:
         import matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt
-        plt.rcParams.update({"font.size": 10, "axes.titlesize": 11, "axes.labelsize": 10,
-                             "xtick.labelsize": 10, "ytick.labelsize": 10, "legend.fontsize": 9})
+        plt.rcParams.update({"font.family": "sans-serif", "font.size": 8,
+                             "axes.titlesize": 8.5, "axes.labelsize": 8,
+                             "xtick.labelsize": 7.5, "ytick.labelsize": 7.5,
+                             "legend.fontsize": 7, "axes.linewidth": 0.6,
+                             "axes.spines.top": False, "axes.spines.right": False})
         names = [n for n in matched if n in brady]
-        fig, ax = plt.subplots(1, 2, figsize=(7.0, 2.9))
-        # (a) grouped reg vs cls bars
+        REG, CLS = "#9ea7b3", "#1b4f72"
+        fig, ax = plt.subplots(1, 2, figsize=(7.0, 2.7))
+
+        # -- (a) grouped reg vs cls bars -------------------------------------------------------
         xb = np.arange(len(names)); w = 0.36
         aR = [brady[n]["aR"] for n in names]; aC = [brady[n]["aC"] for n in names]
-        ax[0].bar(xb - w/2, aR, w, label="reg (pred_rr margin)", color="#9ea7b3")
-        ax[0].bar(xb + w/2, aC, w, label="cls (ROCKET on signal)", color="#2f6f9f")
+        ax[0].bar(xb - w/2, aR, w, label="regress, then threshold", color=REG, zorder=3)
+        ax[0].bar(xb + w/2, aC, w, label="classify the signal (ours)", color=CLS, zorder=3)
+        # One annotation row, placed above the tallest whisker so no error bar can strike through it.
+        whisker_top = max(brady[n]["aC"] + max(0.0, brady[n]["hi"]) for n in names)
+        ann_y = whisker_top + 0.035
         for i, n in enumerate(names):
             g = brady[n]
             ax[0].errorbar(xb[i] + w/2, g["aC"], yerr=[[max(0, -g["lo"])], [max(0, g["hi"])]],
-                           fmt="none", ecolor="k", elinewidth=0.8, capsize=2)
-            ax[0].text(xb[i], max(g["aR"], g["aC"]) + 0.03, f"{g['gain']:+.3f}", ha="center", fontsize=8)
-        ax[0].axhline(0.5, color="k", lw=0.6, ls=":")
-        ax[0].set_xticks(xb); ax[0].set_xticklabels([n.replace("(fusion)", "") for n in names], fontsize=8)
-        ax[0].set_ylim(0.4, 1.0); ax[0].set_ylabel("AUROC")
-        ax[0].set_title("(a) bradypnea (RR$\\leq$%g)" % CUT, fontsize=11)
-        ax[0].legend(fontsize=8, frameon=False, loc="lower right")
-        # (b) sweep
-        colors = {"EfficientPhys": "#c0603a", "TS-CAN": "#4a8a5a", "PRISM(fusion)": "#2f6f9f"}
+                           fmt="none", ecolor="0.25", elinewidth=0.7, capsize=2, zorder=4)
+            ax[0].text(xb[i], ann_y, f"{g['gain']:+.3f}", ha="center", va="bottom", fontsize=7.2,
+                       color=CLS, fontweight="bold", zorder=5)
+        ax[0].axhline(0.5, color="0.55", lw=0.7, ls=(0, (3, 3)), zorder=1)
+        # The dashed rule runs past the last bar group; label it there rather than over a bar.
+        ax[0].set_xlim(-0.62, len(names) - 1 + 0.78)
+        ax[0].text(len(names) - 1 + 0.74, 0.508, "chance", fontsize=6.5, color="0.5",
+                   ha="right", va="bottom")
+        ax[0].set_xticks(xb)
+        ax[0].set_xticklabels([n.replace("(fusion)", "").strip() for n in names], fontsize=7.5)
+        ax[0].set_ylim(0.4, ann_y + 0.075); ax[0].set_yticks([0.4, 0.6, 0.8, 1.0])
+        ax[0].set_ylabel("AUROC")
+        ax[0].set_title("(a) The gain holds at a bradypnea cutoff (RR$\\leq$%g)" % CUT, pad=6)
+        ax[0].legend(frameon=False, loc="lower center", bbox_to_anchor=(0.5, -0.42), ncol=2,
+                     handlelength=1.2, columnspacing=1.2)
+        ax[0].grid(axis="y", color="0.93", lw=0.5, zorder=0); ax[0].set_axisbelow(True)
+
+        # -- (b) threshold sweep ---------------------------------------------------------------
+        colors = {"EfficientPhys": "#c0603a", "TS-CAN": "#4a8a5a", "PRISM(fusion)": CLS}
         for n in matched:
             sw = sweeps[n][~sweeps[n]["degenerate"]]
-            ax[1].plot(sw["thr"], sw["gain"], marker="o", ms=3, lw=1.4,
-                       color=colors.get(n, None), label=n.replace("(fusion)", ""))
-        ax[1].axhline(0, color="k", lw=0.6)
-        ax[1].axvline(CUT, color="#666", lw=0.8, ls="--")
-        ax[1].text(CUT + 0.4, ax[1].get_ylim()[1], "brady\ncutoff", fontsize=8, va="top", color="#666")
+            ax[1].plot(sw["thr"], sw["gain"], marker="o", ms=2.6, lw=1.3,
+                       color=colors.get(n, None), label=n.replace("(fusion)", "").strip(), zorder=3)
+        ax[1].axhline(0, color="0.35", lw=0.7, zorder=2)
+        ymin, ymax = ax[1].get_ylim()
+        span = ymax - ymin
+        ax[1].set_ylim(ymin - span * 0.10, ymax + span * 0.14)
+        lo, hi = ax[1].get_ylim()
+
+        # WHO cutoffs: thin rules labelled just above the zero line, inside the axes, where the
+        # curves have not yet risen. Nothing is anchored to an axis extreme.
         for who in (40, 50, 60):
-            ax[1].axvline(who, color="#bbb", lw=0.6, ls=":")
-        ax[1].text(50, ax[1].get_ylim()[0], "WHO tachy 40/50/60", fontsize=8, ha="center",
-                   va="bottom", color="#999")
-        ax[1].set_xlabel("RR threshold (BPM)")
-        ax[1].set_ylabel("framing gain ($\\Delta$AUROC)")
-        ax[1].set_title("(b) gain is threshold-agnostic", fontsize=11)
-        ax[1].legend(fontsize=8, frameon=False, loc="best")
-        fig.tight_layout()
-        fig.savefig("manuscript/fig_framing_thresholds.png", dpi=600)
-        fig.savefig("manuscript/fig_framing_thresholds.pdf", dpi=600)
-        print("\n[fig] wrote manuscript/fig_framing_thresholds.{png,pdf}")
+            ax[1].axvline(who, color="0.85", lw=0.6, ls=":", zorder=1)
+            ax[1].text(who, lo + span * 0.045, f"{who}", fontsize=6.3, color="0.5",
+                       ha="center", va="bottom", zorder=4,
+                       bbox=dict(boxstyle="square,pad=0.08", fc="white", ec="none"))
+        ax[1].text(55, lo + span * 0.135, "WHO cutoffs", fontsize=6.5, color="0.5",
+                   ha="center", va="bottom", zorder=4)
+
+        # Bradypnea cutoff: labelled beside its own rule in the upper-left, which the legend vacated.
+        ax[1].axvline(CUT, color="0.45", lw=0.8, ls="--", zorder=2)
+        ax[1].text(CUT - 0.8, hi - span * 0.04, "bradypnea\ncutoff", fontsize=6.5, color="0.35",
+                   ha="right", va="top", linespacing=1.25, zorder=5)
+        ax[1].set_xlabel("Decision threshold (breaths/min)")
+        ax[1].set_ylabel("Framing gain ($\\Delta$AUROC)")
+        ax[1].set_title("(b) and across every threshold tested", pad=6)
+        ax[1].legend(frameon=False, loc="lower center", bbox_to_anchor=(0.5, -0.42), ncol=3,
+                     handlelength=1.2, columnspacing=1.2)
+        ax[1].grid(axis="y", color="0.93", lw=0.5, zorder=0); ax[1].set_axisbelow(True)
+
+        fig.tight_layout(pad=0.5, w_pad=2.0)
+        fig.subplots_adjust(bottom=0.30)
+        fig.savefig("manuscript/fig_framing_thresholds.png", dpi=600, bbox_inches="tight")
+        fig.savefig("manuscript/fig_framing_thresholds.pdf", dpi=600, bbox_inches="tight")
+        # Cache what was plotted so the figure can be restyled without re-running the CV.
+        pd.DataFrame([{"model": n, **brady[n]} for n in names]).to_csv(
+            "outputs/framing_bradypnea_bars.csv", index=False)
+        pd.concat([sweeps[n].assign(model=n) for n in matched]).to_csv(
+            "outputs/framing_bradypnea_sweep.csv", index=False)
+        print("\n[fig] wrote manuscript/fig_framing_thresholds.{png,pdf} and outputs/framing_bradypnea_*.csv")
     except Exception as e:
         print(f"\n[fig] skipped ({e})")

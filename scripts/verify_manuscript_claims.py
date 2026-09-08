@@ -279,6 +279,151 @@ def main() -> int:
         h = json.loads(hr.read_text())
         ck.add("sec:age <2mo sens (selective)", 0.80, h.get("neonatal_sens_hybrid"), tol=0.01)
 
+    # ---------------- neonatal escalation pathway (Fig. escalation, app:escalation) ----------------
+    # This section was the one place where the manuscript, its appendix and the rendered figure each
+    # carried a different set of numbers, because none of them was re-derived here. It is now.
+    import importlib.util
+    _spec = importlib.util.spec_from_file_location("_ep", ROOT / "scripts" / "escalation_pathway.py")
+    _ep = importlib.util.module_from_spec(_spec)
+    _argv, sys.argv = sys.argv, ["verify"]
+    try:
+        _spec.loader.exec_module(_ep)
+    finally:
+        sys.argv = _argv
+
+    eps = sorted(glob.glob(str(ROOT / "outputs" / "paper_runs" / PRISM / "fold*" / "test_eval"
+                               / "prism_breath_predictions.csv")))
+    if eps:
+        parts = []
+        for p in eps:
+            x = pd.read_csv(p); x["fold"] = int(re.search(r"fold(\d+)", p).group(1)); parts.append(x)
+        e = pd.concat(parts, ignore_index=True)
+        e["band"] = e["age_months"].apply(band)
+        e["T"] = e["threshold_bpm"].astype(float)
+        es = _ep.aggregate_subject(e)
+        es["res"] = (es["pred_rr_bpm"] - es["gt_rr_bpm"]).abs()
+        es["tri"], qq = _ep.lofo_ageconditional_triage(es)
+
+        for b, claimed_refer, claimed_q in (("<2mo", 52.6, 19.0), ("2-12mo", 45.5, None),
+                                            ("12-60mo", 43.8, 7.0)):
+            m = (es.band == b).values
+            ck.add(f"tab:escalation REFER% {b}", claimed_refer,
+                   100.0 * (es.tri.to_numpy()[m] == 2).mean(), tol=0.1)
+            if claimed_q is not None:
+                ck.add(f"escalation qhat {b} (rounded)", claimed_q, float(np.round(qq[m].mean())), tol=0.5)
+
+        ret = _ep.screen_metrics(es, "tri")
+        ck.add("tab:retained overall Sens", 0.690, ret["sens"], tol=0.002)
+        ck.add("tab:retained overall Spec", 0.980, ret["spec"], tol=0.002)
+        ck.add("tab:retained 12-60mo Sens", 1.000,
+               _ep.screen_metrics(es[es.band == "12-60mo"], "tri")["sens"], tol=0.002)
+        ck.add("escalation coverage (% referred)", 45.0,
+               100.0 * float((es.tri == 2).mean()), tol=0.6)
+
+        n2 = es[(es.band == "<2mo") & (es.gt_tachy == 1)]
+        cam = (n2.pred_rr_bpm.to_numpy(float) >= n2["T"].to_numpy(float)).astype(int)
+        ck.add("escalation #tachypneic neonates", 10, len(n2), tol=0.5)
+        ck.add("escalation camera-only neonatal Sens", 0.100, float(cam.mean()), tol=0.002)
+        ck.add("escalation neonates falsely cleared (camera)", 9, int((cam == 0).sum()), tol=0.5)
+        ck.add("escalation neonates falsely cleared (triage)", 3, int((n2.tri == 0).sum()), tol=0.5)
+        ck.add("escalation neonates referred", 7, int((n2.tri == 2).sum()), tol=0.5)
+        ck.add("full-coverage overall Sens", 0.548,
+               float((es.pred_rr_bpm.to_numpy(float) >= es["T"].to_numpy(float))
+                     [es.gt_tachy.to_numpy(int) == 1].mean()), tol=0.002)
+
+        # Pooled (non-Mondrian) width: the comparison that justifies age-conditional calibration.
+        qp = np.empty(len(es))
+        for k in sorted(es.fold.unique()):
+            qp[(es.fold == k).values] = _ep.conf_q(es.loc[es.fold != k, "res"].to_numpy(float))
+        pooled = _ep.straddle(es.pred_rr_bpm.to_numpy(float) - qp,
+                              es.pred_rr_bpm.to_numpy(float) + qp, es["T"].to_numpy(float))
+        m2 = (es.band == "<2mo").values
+        ck.add("pooled width <2mo coverage", 0.579,
+               float((es.res.to_numpy(float) <= qp)[m2].mean()), tol=0.002)
+        ck.add("pooled REFER% <2mo", 15.8, 100.0 * float((pooled[m2] == 2).mean()), tol=0.1)
+        ck.add("pooled REFER% 12-60mo", 59.4,
+               100.0 * float((pooled[(es.band == "12-60mo").values] == 2).mean()), tol=0.1)
+        n2p = pooled[((es.band == "<2mo") & (es.gt_tachy == 1)).values]
+        ck.add("pooled neonates rescued", 2, int((cam == 0).sum()) - int((n2p == 0).sum()), tol=0.5)
+
+    # ---------------- distributional triage read-out (sec:disttriage, tab:disttriage) ----------------
+    _spec2 = importlib.util.spec_from_file_location("_dt", ROOT / "scripts" / "distributional_triage.py")
+    _dt = importlib.util.module_from_spec(_spec2)
+    _argv, sys.argv = sys.argv, ["verify"]
+    try:
+        _spec2.loader.exec_module(_dt)
+    finally:
+        sys.argv = _argv
+
+    _sal = _dt.ensemble(_dt.SALIENCE)
+    _pri = _dt.load_run(_dt.PRISM)
+    if _sal is not None and _pri is not None:
+        cm = sorted(set(_sal.subject_id) & set(_pri.subject_id))
+        _sal = _sal[_sal.subject_id.isin(cm)].reset_index(drop=True)
+        _pri = _pri[_pri.subject_id.isin(cm)].reset_index(drop=True)
+
+        def burden_row(d, col):
+            cleared = d[d[col] == 0]
+            n2 = d[(d.band == "<2mo") & (d.gt_tachy == 1)]
+            return (100.0 * float((d[col] != 0).mean()),
+                    int((cleared.gt_tachy == 1).sum()), int((n2[col] == 0).sum()))
+
+        _pri["c"], _ = _dt.triage_conformal(_pri)
+        b_a, cl_a, neo_a = burden_row(_pri, "c")
+        ck.add("tab:disttriage PRISM conformal burden", 52.4, b_a, tol=0.1)
+        ck.add("tab:disttriage PRISM conformal cleared", 9, cl_a, tol=0.5)
+        ck.add("tab:disttriage PRISM conformal neonates", 3, neo_a, tol=0.5)
+
+        _sal["c"], _ = _dt.triage_conformal(_sal)
+        b_a2, cl_a2, neo_a2 = burden_row(_sal, "c")
+        ck.add("tab:disttriage Salience conformal burden", 59.9, b_a2, tol=0.1)
+        ck.add("tab:disttriage Salience conformal cleared", 3, cl_a2, tol=0.5)
+
+        _sal["d"], _, _ = _dt.triage_distributional(_sal, 0.02, 0.50)
+        b_b, cl_b, neo_b = burden_row(_sal, "d")
+        ck.add("tab:disttriage distributional burden", 41.9, b_b, tol=0.1)
+        ck.add("tab:disttriage distributional cleared", 2, cl_b, tol=0.5)
+        ck.add("tab:disttriage distributional neonates", 0, neo_b, tol=0.5)
+
+        # Paired burden test quoted in the text.
+        from scipy import stats as _st
+        ba = (_pri.set_index("subject_id").loc[cm, "c"].to_numpy() != 0).astype(int)
+        bb = (_sal.set_index("subject_id").loc[cm, "d"].to_numpy() != 0).astype(int)
+        n10 = int(((ba == 1) & (bb == 0)).sum()); n01 = int(((ba == 0) & (bb == 1)).sum())
+        ck.add("sec:disttriage burden discordant a-only", 63, n10, tol=0.5)
+        ck.add("sec:disttriage burden discordant b-only", 28, n01, tol=0.5)
+        ck.add("sec:disttriage burden McNemar p", 3.1e-4,
+               float(_st.binomtest(n10, n10 + n01, 0.5).pvalue), tol=5e-5)
+        ck.add("sec:disttriage burden reduction", 0.106, float(ba.mean() - bb.mean()), tol=0.002)
+
+        # Safety comparison is quoted as NON-significant; verify it stays that way.
+        y = _pri.set_index("subject_id").loc[cm, "gt_tachy"].to_numpy(int)
+        fa = ((_pri.set_index("subject_id").loc[cm, "c"].to_numpy() == 0) & (y == 1)).astype(int)
+        fb = ((_sal.set_index("subject_id").loc[cm, "d"].to_numpy() == 0) & (y == 1)).astype(int)
+        m10 = int(((fa == 1) & (fb == 0)).sum()); m01 = int(((fa == 0) & (fb == 1)).sum())
+        ck.add("sec:disttriage safety McNemar p (n.s.)", 0.065,
+               float(_st.binomtest(m10, m10 + m01, 0.5).pvalue), tol=0.002)
+
+        # Out-of-sample calibration of the safety budget.
+        for d_, claimed in ((0.02, 0.028), (0.05, 0.044), (0.10, 0.090)):
+            s2 = _sal.copy()
+            s2["t"], _, _ = _dt.triage_distributional(s2, d_, 0.30)
+            cl = s2[s2.t == 0]
+            ck.add(f"sec:disttriage realized FCR @delta={d_}", claimed,
+                   float(cl.gt_tachy.mean()) if len(cl) else np.nan, tol=0.002)
+
+        # Per-seed spread, quoted verbatim as the reason the safety claim is withheld.
+        per_cl, per_b = [], []
+        for r in _dt.SALIENCE:
+            s3 = _dt.load_run(r)
+            s3 = s3[s3.subject_id.isin(cm)].reset_index(drop=True)
+            s3["t"], _, _ = _dt.triage_distributional(s3, 0.02, 0.50)
+            bb_, cc_, _ = burden_row(s3, "t")
+            per_b.append(bb_); per_cl.append(cc_)
+        for i, (cb, cc) in enumerate(zip((53.3, 45.8, 45.5), (9, 4, 2))):
+            ck.add(f"sec:disttriage seed{i} burden", cb, per_b[i], tol=0.1)
+            ck.add(f"sec:disttriage seed{i} cleared", cc, per_cl[i], tol=0.5)
+
     bad = ck.report()
     if bad:
         print("\nEvery MISMATCH is a number in the manuscript that its own artifacts do not support.")

@@ -314,31 +314,36 @@ $\tau$ & prev & EfficientPhys & TS-CAN & PRISM (fusion)\\\midrule
 \label{app:escalation}
 %% source: scripts/escalation_pathway.py
 Because every camera extractor collapses in the $<2$-month band (Section~\ref{app:subgroup}), the deployed
-system does not screen neonates---it \emph{escalates} them. A leakage-free leave-one-fold-out
-age-conditional (Mondrian) conformal interval decides, per case, whether the WHO threshold is unambiguously
-outside the interval (auto-decide NORMAL/ALERT) or straddles it (REFER to a contact/radar modality).
-Table~\ref{tab:escalation} shows the referral rate rises steeply with clinical risk: $74\%$ of $<2$-month
-infants are escalated versus $39\%$ of the $12$--$60$-month band. On the cases the system \emph{retains}
-(Table~\ref{tab:retained}) it screens at high sensitivity in the older bands ($1.000$ for $12$--$60$mo,
-$0.636$ for $2$--$12$mo) and pooled sensitivity $0.808$/specificity $0.986$. Concretely, of the $10$
-tachypneic $<2$-month neonates that a naive camera-only screen would almost entirely clear as normal
-($\text{Sens}=0.100$), escalation routes $9$ to referral, cutting the missed-neonate count from $9$ to $1$.
-The coverage cost is explicit and we state it rather than only the benefit: the system screens $52\%$ of
-the cohort and escalates $48\%$, which is what buys the rise in retained sensitivity from $0.548$ to
-$0.808$. Note also that the single retained tachypneic neonate is still missed, so the residual neonatal
-risk is reduced by escalation, not eliminated.
+system does not screen neonates---it \emph{escalates} them. A leave-one-fold-out age-conditional (Mondrian)
+conformal interval decides, per case, whether the WHO threshold is unambiguously outside the interval
+(auto-decide NORMAL/ALERT) or straddles it (REFER to a contact/radar modality). We report the
+leave-one-fold-out construction as primary because it is the only one that is leakage-free: the width used
+for a case is fitted purely on residuals from folds that did not contain it. The fixed width shipped in our
+deployed configuration was calibrated on an earlier run over an overlapping set of children, so we report it
+only as a cross-check at the end of this section and never as the headline.
+
+Table~\ref{tab:escalation} shows the referral rate ordered by clinical risk, though the gradient is modest:
+$52.6\%$ of $<2$-month infants are escalated versus $43.8\%$ of the $12$--$60$-month band. On the cases the
+system \emph{retains} (Table~\ref{tab:retained}) it screens at high sensitivity in the older bands ($1.000$
+for $12$--$60$mo, $0.538$ for $2$--$12$mo) and pooled sensitivity $0.690$/specificity $0.980$. Concretely,
+of the $10$ tachypneic $<2$-month neonates that a naive camera-only screen would almost entirely clear as
+normal ($\text{Sens}=0.100$, $9$ falsely cleared), escalation routes $7$ to referral, cutting the
+missed-neonate count from $9$ to $3$. The coverage cost is explicit and we state it rather than only the
+benefit: the system screens $55\%$ of the cohort and escalates $45\%$, which is what buys the rise in
+retained sensitivity from the full-coverage $0.548$ to $0.690$. Note also that $3$ retained tachypneic
+neonates are still missed, so the residual neonatal risk is reduced by escalation, not eliminated.
 
 \begin{table}[!t]
-\caption{Escalation (REFER) rate by age band under the leave-one-fold-out age-conditional conformal triage
-($n{=}332$). ALERT/NORMAL are the auto-decided cases.}
+\caption{Escalation (REFER) rate by age band under the leakage-free leave-one-fold-out age-conditional
+conformal triage ($n{=}332$). ALERT/NORMAL are the auto-decided cases.}
 \label{tab:escalation}\centering\small
 \setlength{\tabcolsep}{4pt}
 \begin{tabular}{@{}lccccc@{}}\toprule
 Band & $n$ & REFER\% & NORMAL\% & ALERT\% & \#tachy\\\midrule
-$<2$mo   & 38  & 73.7 & 26.3 & 0.0  & 10\\
-2--12mo  & 134 & 50.0 & 44.8 & 5.2  & 45\\
-12--60mo & 160 & 39.4 & 50.6 & 10.0 & 29\\
-overall  & 332 & 47.6 & 45.5 & 6.9  & 84\\\bottomrule
+$<2$mo   & 38  & 52.6 & 47.4 & 0.0  & 10\\
+2--12mo  & 134 & 45.5 & 48.5 & 6.0  & 45\\
+12--60mo & 160 & 43.8 & 46.9 & 9.4  & 29\\
+overall  & 332 & 45.5 & 47.6 & 6.9  & 84\\\bottomrule
 \end{tabular}
 \end{table}
 
@@ -348,21 +353,35 @@ band-straddling cases, leaving a high-specificity screen.}
 \label{tab:retained}\centering\small
 \begin{tabular}{@{}lccccc@{}}\toprule
 Band & $n_\text{ret}$ & pos & Sens & Spec & AUROC\\\midrule
-$<2$mo   & 10  & 1  & 0.000 & 1.000 & 0.222\\
-2--12mo  & 67  & 11 & 0.636 & 1.000 & 0.838\\
-12--60mo & 97  & 14 & 1.000 & 0.976 & 0.988\\
-overall  & 174 & 26 & 0.808 & 0.986 & 0.861\\\bottomrule
+$<2$mo   & 18  & 3  & 0.000 & 1.000 & 0.489\\
+2--12mo  & 73  & 13 & 0.538 & 0.983 & 0.804\\
+12--60mo & 90  & 13 & 1.000 & 0.974 & 0.988\\
+overall  & 181 & 29 & 0.690 & 0.980 & 0.797\\\bottomrule
 \end{tabular}
 \end{table}
 
 \noindent\textbf{Honest caveats.} The rescue is real but bounded. (i) It requires the \emph{age-conditional}
-$\hat q$ (per-band width $\sim$$26$~breath/min for $<2$mo vs.\ $\sim$$6.5$ for $12$--$60$mo); the persisted
-single model-level width ($\sim$$8$~breath/min) escalates only $10\%$ of neonates and rescues $0/8$. (ii)
-Escalation buys sensitivity with coverage: overall retained coverage is $56\%$ ($44\%$ of cases are
-referred rather than screened), which lifts retained sensitivity from the full-coverage $0.663$ to $0.735$.
-(iii) Even with age-conditional escalation, $2$ of the $8$ tachypneic neonates are still auto-cleared, so
-the pathway mitigates but does not eliminate the neonatal blind spot. A decision-focused end-to-end model
-that learns the referral policy directly is the natural next step.
+$\hat q$ (leave-one-fold-out width $18.8$~breaths/min for $<2$mo vs.\ $7.1$ for $12$--$60$mo). A pooled
+width fitted the same leakage-free way is $9.5$~breaths/min for every band, and it fails in exactly the way
+Mondrian calibration is meant to prevent: it covers the $<2$mo band at only $0.579$ against a nominal
+$0.80$ (versus $0.816/0.806/0.800$ per band for the Mondrian width), \emph{inverts} the escalation gradient
+---referring $15.8\%$ of neonates but $59.4\%$ of the $12$--$60$mo band---and rescues only $2$ of the $9$
+falsely cleared neonates instead of $6$. (ii) Escalation buys sensitivity with coverage: the system screens
+$55\%$ of cases and refers $45\%$, which lifts retained sensitivity from the full-coverage $0.548$ to
+$0.690$. Most of that coverage cost is an artifact of triaging on the regressed rate rather than on the
+salience mass, and Section~\ref{sec:disttriage} shows it is largely recoverable. (iii) Even with age-conditional escalation, $3$ of the $10$ tachypneic neonates are still
+auto-cleared---the three most saturated cases, predicted $29$--$39$ for true rates of $66$--$78$, whose
+interval upper bounds ($48$--$58$) stay below the $60$ cutoff---so the pathway mitigates but does not
+eliminate the neonatal blind spot.
+
+\noindent\textbf{Cross-check: the deployed fixed width.} The width shipped in
+\texttt{age\_conditional\_conformal.json} ($24.6/11.3/6.4$~breaths/min) was calibrated on residuals from an
+earlier run over an overlapping set of children, so it is not leakage-free and we do not report it as the
+primary result. For completeness, it escalates more of the youngest band ($73.7/50.0/39.4\%$) and
+correspondingly rescues more ($9$ falsely cleared cases cut to $1$; retained Sens $0.808$, Spec $0.986$ at
+$48\%$ referral). The direction of every conclusion in this section is the same under both constructions;
+only the magnitude differs, and we quote the conservative one. A decision-focused end-to-end model that
+learns the referral policy directly is the natural next step.
 \subsection{Decision-Focused Training Does Not Improve on Calibration Alone}
 \label{app:decisionmodel}
 %% source: scripts/decision_model_eval.py

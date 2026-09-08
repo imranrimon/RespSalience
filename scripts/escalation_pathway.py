@@ -97,7 +97,7 @@ def aggregate_subject(df):
     has exactly one test video, so this is 1:1 with rows -- we run it explicitly for honesty and to
     stay correct if a subject ever contributes multiple videos."""
     g = df.groupby("subject_id", sort=False)
-    agg = g.agg(
+    spec = dict(
         fold=("fold", "first"),
         age_months=("age_months", "first"),
         band=("band", "first"),
@@ -106,9 +106,13 @@ def aggregate_subject(df):
         pred_rr_bpm=("pred_rr_bpm", "mean"),
         tachy_prob=("tachy_prob", "mean"),
         T=("T", "first"),
-        csv_triage_code=("triage_code", "first"),
-        model_triage_code=("model_triage_code", "first"),
-    ).reset_index()
+    )
+    # The persisted triage columns exist only for runs evaluated after selective_triage was wired in.
+    # They drive the honesty cross-check, not the primary analysis, so carry them only when present.
+    for col, src in (("csv_triage_code", "triage_code"), ("model_triage_code", "model_triage_code")):
+        if src in df.columns:
+            spec[col] = (src, "first")
+    agg = g.agg(**spec).reset_index()
     agg["res"] = (agg["pred_rr_bpm"] - agg["gt_rr_bpm"]).abs()
     return agg
 
@@ -254,9 +258,9 @@ def make_figure(sub, triage_col, band_screen, avoided):
     for xi, v in zip(x, refer):
         ax[0].text(xi, v + 2.5, f"{v:.0f}%", ha="center", va="bottom", fontweight="bold", fontsize=11)
     ax[0].set_xticks(x); ax[0].set_xticklabels(BANDS)
-    ax[0].set_ylabel("Escalated to radar [%]")
+    ax[0].set_ylabel("Escalated (REFER) [%]")
     ax[0].set_ylim(0, 100)
-    ax[0].set_title("(a) Younger bands escalate more")
+    ax[0].set_title("(a) Escalation rate by age band")
 
     # (b) fate of the tachypneic neonates: camera-only vs with escalation ----------------
     miss0, miss1 = avoided["fn_noesc"], avoided["fn_esc"]   # false-clears without / with escalation
@@ -272,12 +276,19 @@ def make_figure(sub, triage_col, band_screen, avoided):
     ax[1].text(xb[1], miss1 + rescued / 2, f"{rescued}", ha="center", va="center", color="white",
                fontweight="bold")
     ax[1].set_xticks(xb); ax[1].set_xticklabels(["camera\nonly", "with\nescalation"])
-    ax[1].set_ylabel(f"Tachypneic neonates (n={ntp})")
+    # Short label: these are counts, so the axis must tick in whole neonates, and n belongs in the
+    # caption rather than in a y-label long enough to run into panel (a)'s title.
+    ax[1].set_ylabel("Tachypneic neonates")
     ax[1].set_ylim(0, ntp + 1.2)
-    ax[1].set_title(f"(b) Missed neonates cut {miss0}→{miss1}")
-    ax[1].legend(fontsize=9, frameon=False, loc="upper right")
+    ax[1].set_yticks(np.arange(0, ntp + 1, 2))
+    ax[1].set_title(f"(b) Missed neonates cut {miss0}→{miss1} (n={ntp})")
+    # Both bars reach nearly the full height, so an in-axes legend sits on the data; put it under
+    # the panel, below the two-line tick labels, where it cannot collide with either.
+    ax[1].legend(fontsize=9, frameon=False, loc="upper center", bbox_to_anchor=(0.5, -0.30),
+                 ncol=2, handlelength=1.3, columnspacing=1.4, borderpad=0.2)
 
-    fig.tight_layout()
+    fig.tight_layout(w_pad=3.0)
+    fig.subplots_adjust(bottom=0.32)
     fig.savefig(FIG + ".png", dpi=600, bbox_inches="tight")
     fig.savefig(FIG + ".pdf", dpi=600, bbox_inches="tight")
     print(f"\nwrote {FIG}.png and {FIG}.pdf")
@@ -288,17 +299,22 @@ if __name__ == "__main__":
     print(f"loaded n={len(df)} rows, folds={sorted(df.fold.unique())}")
 
     # --- triage semantics (as requested: print distinct triage_code/status + mapping) ---
-    print("\nTRIAGE SEMANTICS (persisted CSV columns):")
-    print("  distinct triage_code   :", sorted(df["triage_code"].unique()))
-    print("  distinct triage_status :", sorted(df["triage_status"].unique()))
-    ct = pd.crosstab(df["triage_code"], df["triage_status"])
-    print("  code<->status map:")
-    for c in sorted(df["triage_code"].unique()):
-        st = df.loc[df.triage_code == c, "triage_status"].iloc[0]
-        print(f"    code {c} = {st:16s} -> {LABEL[c]}")
-    print("  (REFER = escalate = routed out to radar/contact)")
-    print("  persisted qhat_source :", df["qhat_source"].unique().tolist(),
-          "-> single model-level width, NOT age-conditional")
+    HAS_CSV_TRIAGE = "triage_code" in df.columns
+    if HAS_CSV_TRIAGE:
+        print("\nTRIAGE SEMANTICS (persisted CSV columns):")
+        print("  distinct triage_code   :", sorted(df["triage_code"].unique()))
+        print("  distinct triage_status :", sorted(df["triage_status"].unique()))
+        print("  code<->status map:")
+        for c in sorted(df["triage_code"].unique()):
+            st = df.loc[df.triage_code == c, "triage_status"].iloc[0]
+            print(f"    code {c} = {st:16s} -> {LABEL[c]}")
+        print("  (REFER = escalate = routed out to radar/contact)")
+        print("  persisted qhat_source :", df["qhat_source"].unique().tolist(),
+              "-> single model-level width, NOT age-conditional")
+    else:
+        print("\nTRIAGE SEMANTICS: this run predates the persisted triage columns; the LOFO primary "
+              "and the deployed-config cross-check are both computed here, and the persisted-triage "
+              "honesty check is skipped.")
 
     sub = aggregate_subject(df)
     print(f"\nsubject-level: n_subjects={len(sub)} (== n_rows {len(df)}: one test video per subject)")
@@ -322,7 +338,8 @@ if __name__ == "__main__":
     report(sub, "deploy", "CROSS-CHECK: deployed config qhat (in-sample)")
 
     # honesty check: the PERSISTED model-level triage does it escalate <2mo?
-    report(sub, "csv_triage_code",
-           "HONESTY CHECK: persisted model-level triage_code (single qhat ~8 BPM, NOT age-conditional)")
+    if HAS_CSV_TRIAGE:
+        report(sub, "csv_triage_code",
+               "HONESTY CHECK: persisted model-level triage_code (single qhat ~8 BPM, NOT age-conditional)")
 
     make_figure(sub, "lofo", band_screen, avoided)

@@ -769,31 +769,86 @@ Band & Read-out & Sensitivity & Specificity\\\midrule
 Neonatal escalation is therefore a conservative policy choice rather than a concession that the band is
 unscreenable, and we keep it because the recovered neonatal operating point trades specificity in the
 smallest and most fragile band ($n{=}38$). We operationalize it not as a blanket exclusion but as an
-explicit, uncertainty-driven \emph{escalation} pathway. Under the age-conditional conformal rule (Sec.~\ref{sec:calib}), whose interval
-widens to $\sim\!26$~breaths/min for neonates, the selective triage refers a case to escalation (radar or a
-contact measurement) whenever its prediction interval straddles the WHO threshold. This routes cases out in
-proportion to how uncertain the regressed rate is, which tracks age: the referral rate is $79\%$ for $<$2mo, $48\%$ for
-$2$--$12$mo, and $34\%$ for $12$--$60$mo (Fig.~\ref{fig:escalation}). The $79\%$ is what age-conditional
-conformal triage refers on its own; because neonates are \emph{additionally} placed on mandatory referral
-by policy, their effective referral rate is $100\%$ and the triage is never used to \emph{clear} a neonate. On the retained (non-referred) cases
-the screen is clean---specificity $0.99$, AUROC $0.88$ overall, and sensitivity $0.94$ for the oldest
-band---so escalation buys a large safety margin for a $44\%$ coverage cost. Concretely, of the eight
-tachypneic neonates (true RR $60$--$80.5$) that a camera-only screen would falsely clear ($0/8$ detected),
-age-conditional escalation refers six to a modality that can see them, cutting neonatal false-clears from
-eight to two. The residual two are the most saturated cases (predicted $\sim\!30$ for true $65$--$78$),
-where even a $\pm26$~breaths/min interval cannot raise the upper bound above the cutoff: escalation
-\emph{mitigates} the neonatal blind spot but does not eliminate it. We stress that this behavior is a
-property of the \emph{age-conditional} calibration; a single pooled conformal width (mis-covering neonates)
-escalates them least and rescues none, which is precisely the failure the age-conditional rule corrects.
+explicit, uncertainty-driven \emph{escalation} pathway. Under the age-conditional conformal rule
+(Sec.~\ref{sec:calib}), whose leakage-free interval widens to $\pm19$~breaths/min for neonates against
+$\pm7$ for the oldest band, the selective triage refers a case to escalation (radar or a contact
+measurement) whenever its prediction interval straddles the WHO threshold. This routes cases out in
+proportion to how uncertain the regressed rate is, which orders by age---the referral rate is $53\%$ for
+$<$2mo, $46\%$ for $2$--$12$mo, and $44\%$ for $12$--$60$mo (Fig.~\ref{fig:escalation})---though the
+gradient across bands is modest. That $53\%$ is what age-conditional conformal triage refers on its own;
+because neonates are \emph{additionally} placed on mandatory referral by policy, their effective referral
+rate is $100\%$ and the triage is never used to \emph{clear} a neonate. On the retained (non-referred)
+cases the screen is clean---specificity $0.98$ and sensitivity $1.00$ for the oldest band, $0.69$
+pooled---so escalation buys a real safety margin for a $45\%$ coverage cost. Concretely, of the ten
+tachypneic neonates (true RR $60$--$80.5$) that a camera-only screen almost entirely clears ($1/10$
+detected), age-conditional escalation refers seven to a modality that can see them, cutting neonatal
+false-clears from nine to three. The residual three are the most saturated cases (predicted $29$--$39$ for
+true $66$--$78$), where even a $\pm19$~breaths/min interval leaves the upper bound at $48$--$58$, below the
+$60$ cutoff: escalation \emph{mitigates} the neonatal blind spot but does not eliminate it. We stress that
+this behavior is a property of the \emph{age-conditional} calibration; a pooled conformal width fitted the
+same way covers neonates at only $0.579$ against a nominal $0.80$, inverts the gradient by escalating the
+youngest band least ($16\%$) and the oldest most ($59\%$), and rescues two rather than six---precisely the
+failure the age-conditional rule corrects.
 
 \begin{figure*}[!t]\centering
 \includegraphics[width=6.6in]{fig_escalation.pdf}
-\caption{Deferral as a designed escalation pathway (age-conditional conformal triage, $n{=}332$).
-(a)~The triage escalates a larger share of younger cases to radar/contact---$79\%$ of neonates---even
-before the deployment rule that refers \emph{all} neonates. (b)~Among the eight tachypneic neonates,
-escalation cuts false-clears from eight to two (six rescued to radar). The conformal layer corroborates
-the mandatory-neonatal-referral policy rather than replacing it.}\label{fig:escalation}
+\caption{Deferral as a designed escalation pathway (leakage-free leave-one-fold-out age-conditional
+conformal triage, $n{=}332$). (a)~The triage escalates a larger share of younger cases to radar/contact
+---$53\%$ of neonates versus $44\%$ of the oldest band---even before the deployment rule that refers
+\emph{all} neonates. (b)~Among the ten tachypneic neonates, escalation cuts false-clears from nine to
+three (six rescued to radar). The conformal layer corroborates the mandatory-neonatal-referral policy
+rather than replacing it.}\label{fig:escalation}
 \end{figure*}
+
+\subsection{The triage layer should use the same read-out}\label{sec:disttriage}
+The escalation pathway above has an internal inconsistency that we think is worth stating plainly,
+because it is the same mistake this paper argues against one level down. The triage forms a conformal
+interval around the \emph{regressed} rate and refers whenever that interval straddles the cutoff---so
+the layer that decides whom to screen is built on exactly the regress-then-threshold read-out that
+Section~\ref{sec:framing} shows to be the weaker way to reach a decision. It inherits that read-out's
+failure mode: because the regressed rate saturates near $30$ for neonates whose true rate is $60$--$80$,
+the interval must be widened to $\pm19$~breaths/min before it can straddle the cutoff at all, and that
+width then forces referrals across every other band as collateral.
+
+We therefore built the coherent alternative and measured it against the incumbent on the identical
+cohort under the identical leakage discipline. Instead of an interval around a point estimate, the
+triage abstains on the uncertain band of the salience mass: per age band, clear when $p<t_\text{lo}$,
+alert when $p>t_\text{hi}$, refer otherwise, with $(t_\text{lo},t_\text{hi})$ chosen leave-one-fold-out
+as the widest clearing and alerting regions whose empirical error respects a safety budget ($\delta$, the
+tolerated tachypnea rate among cleared cases; $\gamma$, the tolerated false-alarm rate among alerts).
+The budget is honoured out of sample: realized clearance error tracks $\delta$ closely
+($0.028$ at $\delta{=}0.02$, $0.044$ at $0.05$, $0.090$ at $0.10$).
+
+The fair cost is not the referral rate but the total downstream burden, since an ALERT also sends a
+child onward; the fair safety measure is the number of tachypneic children auto-cleared as normal, and
+we credit the conformal arm with a \emph{perfect} escalation modality. On both, the distributional
+triage is better (Table~\ref{tab:disttriage}): burden falls from $52.4\%$ to $41.9\%$, a paired
+reduction of $0.106$ $[0.051,0.163]$ (exact McNemar $p=3.1\times10^{-4}$, $63$ vs $28$ discordant).
+The middle row isolates the cause: keeping the distributional model but triaging on \emph{its} regressed
+rate gives the worst burden of the three, so the saving comes from the read-out, not from the model.
+
+We are deliberately careful about the safety column. The drop from nine auto-cleared tachypneic
+children to two is a favourable trend, not a result: exact McNemar gives $p=0.065$, and it is
+seed-sensitive---the three seeds individually clear $9/4/2$ at burdens of $53.3/45.8/45.5\%$, so the
+dominance is an ensemble effect and the weakest seed is no better than the incumbent. We therefore claim
+only the burden reduction, and we retain mandatory neonatal referral rather than resting a
+safety-critical policy on an underpowered comparison. That a coherent read-out removes most of the
+referral cost, however, is the practical form of this paper's thesis: the decision rule, not the
+uncertainty layer bolted on top of it, is what makes a screen deployable.
+
+\begin{table}[!t]
+\caption{Triage read-out on the identical cohort ($n{=}332$, leave-one-fold-out throughout). Burden is
+REFER$+$ALERT. ``Cleared'' counts tachypneic children auto-cleared as normal, crediting the conformal
+arms with a perfect escalation modality. Only the burden difference is statistically significant.}
+\label{tab:disttriage}\centering\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lccc@{}}\toprule
+Triage read-out & Burden & Cleared & Neonates\\\midrule
+PRISM-Breath rate $\pm$ conformal & $52.4\%$ & 9 & 3\\
+RespSalience rate $\pm$ conformal & $59.9\%$ & 3 & 3\\
+RespSalience salience mass & $\mathbf{41.9\%}$ & 2 & 0\\\bottomrule
+\end{tabular}
+\end{table}
 
 \subsection{Checkpoint selection is part of the decision rule}\label{sec:selmatrix}
 Section~\ref{sec:objective} showed that the training objective changes which model a fixed
