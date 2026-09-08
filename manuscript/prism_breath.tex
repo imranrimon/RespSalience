@@ -953,48 +953,36 @@ breather. The clean belt---the condition of the failed replication---sits at the
 \label{fig:saturation}
 \end{figure*}
 
-\subsection{Extractor robustness and a retracted result}
-The clinical result is robust to the flow backbone: a TS-CAN-derived flow gives AUROC $0.897$ under a
-leakage-free per-fold protocol, comparable to PRISM. The same leakage-free audit applied to PRISM's own
-EfficientPhys flow leaves the headline essentially unchanged: a per-fold, held-out EfficientPhys extractor
-(zero cross-fold leakage) yields AUROC $0.855$ versus the full-split $0.826$---i.e.\ the leakage-free
-extractor scores $0.029$ \emph{higher}, not lower, so extractor leakage cannot be what produced our
-headline. The difference is not significant either way (subject-bootstrap $95\%$ CI $[-0.047,+0.106]$;
-DeLong $p=0.45$; $298$ matched subjects).
-We flag, and retract, an apparent TS-CAN improvement (AUROC $0.911$) that we traced to extractor leakage
-across folds; the leakage-free number is the honest one. Signals are extracted \emph{after} the
-subject-disjoint split---a split-then-extract ordering that blocks cross-fold information flow---and a
-from-scratch, full-budget retrain with corrected age labels reproduces the headline within run-to-run noise
-on both the standard and the leakage-free flow (supplementary material), so neither adaptive tuning nor
-label error drives the result. An SNR-gated fusion de-collapses the reliability weights but does not change the clinical endpoint
-on this cohort, where the live modalities have similar signal quality.
+\subsection{Robustness, calibration, and deployability}\label{sec:calib}
+\emph{Extractor robustness, and a retraction.} The clinical result does not depend on the flow backbone:
+a TS-CAN-derived flow reaches AUROC $0.897$ under a leakage-free per-fold protocol, comparable to PRISM.
+We flag and \textbf{retract} an apparent TS-CAN improvement (AUROC $0.911$) reported in an earlier
+version, which we traced to extractor leakage across folds. Re-auditing our own pipeline the same way
+moves the headline the \emph{wrong} way for a leakage explanation---a per-fold held-out EfficientPhys
+extractor gives $0.855$ against the full-split $0.826$, i.e.\ $0.029$ higher, and not significantly
+different either way (DeLong $p=0.45$)---so extractor leakage cannot be what produced our result. The
+full audit is in the supplementary material. Trained on Pediatric-RR and evaluated out of domain on
+AIR-400, the model attains RR-MAE $3.12$, competitive with the infant-specific state of the
+art~\cite{infant_air}, while hand-crafted optical flow collapses ($11.3$--$11.8$); that contrast is what
+justifies the learned flow channel (Table~\ref{tab:crossdata}).
 
-\subsection{Cross-dataset generalization}
-Trained on Pediatric-RR and evaluated on the external AIR-400 infant cohort, PRISM attains RR-MAE $3.12$,
-competitive with the infant-specific SOTA~\cite{infant_air}; in-domain on AIR-400 it reaches $2.93$.
-Hand-crafted optical flow collapses out of domain ($11.3$--$11.8$), which justifies the learned flow
-channel (Table~\ref{tab:crossdata}).
-
-\subsection{Calibration, decision curve, and equity}\label{sec:calib}
-PRISM is well-calibrated (ECE $0.064$, Brier $0.110$) and, on decision-curve analysis, its net benefit
-exceeds both treat-all and treat-none at every threshold (Fig.~\ref{fig:calib}). The age-conditional
-conformal layer attains its nominal coverage when calibrated leave-one-fold-out: at $\alpha{=}0.20$ the
-empirical coverage is $0.83$ ($<$2mo, $\hat q{=}25.3$), $0.81$ ($2$--$12$mo, $\hat q{=}11.8$) and $0.81$
-($12$--$60$mo, $\hat q{=}6.4$), i.e.\ $0.81$ overall against a $0.80$ target. This is a property of the
-\emph{age-conditional} construction and not of conformal prediction generally: a single pooled width
-($\hat q\approx8$ for every band) reaches only $0.76$ overall and under-covers exactly where it matters
-most, at $0.62$ for neonates and $0.69$ for $2$--$12$mo. For a screen the decisive
-operating point fixes \emph{sensitivity}: at sensitivity $0.90$, PRISM retains specificity $0.65$ versus
-only $0.05$--$0.21$ for the five published extractors (supplementary material)---a several-fold reduction in
-false referrals at the sensitivity a screen must reach. Conversely, at a fixed specificity of
-$0.90$ the screen retains sensitivity $0.70$; positive predictive value is $0.73$ on this cohort
-(prevalence $0.26$) but falls to $0.46$ at a community prevalence of $0.10$, while negative predictive
-value stays high ($0.96$)---the screen rules out better than it rules in at low prevalence. We find no
-significant
-sex disparity (male AUROC $0.890$ vs.\ female $0.871$; MAE gap n.s.). Finally, on the cohort's own
-clinical sign (observed difficulty breathing), true RR is only weakly predictive (AUROC $0.59$) and
-estimated RR weaker still ($0.54$)---an honest reminder that tachypnea is a screening sign, not a disease
-label.
+\emph{Calibration and operating points.} The model is well calibrated (ECE $0.064$, Brier $0.110$) and
+its net benefit exceeds both treat-all and treat-none at every threshold on decision-curve analysis
+(Fig.~\ref{fig:calib}). The age-conditional conformal layer attains nominal coverage when calibrated
+leave-one-fold-out ($0.81$ overall against a $0.80$ target, and $0.83/0.81/0.81$ across the three bands);
+this is a property of the age-conditional construction rather than of conformal prediction generally, and
+a single pooled width under-covers exactly where it matters most---$0.62$ for neonates (supplementary
+material). For a screen the decisive operating point fixes \emph{sensitivity}, and this is where the
+advantage is largest: at sensitivity $0.90$ the model retains specificity $0.65$ against $0.05$--$0.21$
+for the five published extractors, a several-fold reduction in false referrals at the sensitivity a
+screen must actually reach. At a fixed specificity of $0.90$ it retains sensitivity $0.70$. Positive
+predictive value is $0.73$ on this cohort (prevalence $0.26$) but falls to $0.46$ at a community
+prevalence of $0.10$, while negative predictive value stays high ($0.96$): the screen rules out better
+than it rules in, which is the appropriate behaviour for triage but must be stated plainly for anyone
+deploying it. We find no significant sex disparity, and on the cohort's own clinical sign (observed
+difficulty breathing) neither true nor estimated respiratory rate is more than weakly predictive
+(AUROC $0.59$ and $0.54$)---an honest reminder that tachypnea is a screening sign, not a disease label.
+Both analyses are reported in full in the supplementary material.
 
 \section{Discussion}\label{sec:disc}
 \textbf{Metric reframing.} Our central message is methodological: a screen should be judged by its
