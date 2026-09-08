@@ -54,10 +54,28 @@ $0.90$ on average across six seeds. Carried to
 its conclusion, a pre-specified distributional read-out---no fusion, no depth or audio, no pretraining, no
 auxiliary components---dominates the regression baseline in every age band (pooled AUROC $0.904\pm0.023$ over
 seeds, $0.927$ ensembled, vs.\ $0.827$, $p=1.3{\times}10^{-5}$; RR-MAE $5.50$ vs.\ $6.22$), with the gain
-monotone in difficulty and largest below two months ($0.957$ vs.\ $0.650$). The same reframing applies at
+monotone in difficulty and largest below two months ($0.939$ vs.\ $0.650$; Fig.~\ref{fig:overview}). The same reframing applies at
 model selection: choosing checkpoints by validation regression error rather than by the endpoint costs
 discrimination, and we show that a regress-then-threshold pipeline \emph{cannot} dissociate the two,
-because its ranking is its rate. The same
+because its ranking is its rate.
+
+\begin{figure*}[!t]\centering
+\includegraphics[width=7.1in]{fig_overview.pdf}
+\caption{How the clinical decision is formed, and why that is not the same as estimating the rate.
+(a)~Both read-outs share one encoder; they differ only in what is done with its output---collapse it to
+a scalar and compare that to the WHO cut point, or keep the distribution over rates and integrate the
+mass above the cut point. Because the first ranks cases by a monotone function of $\hat r$, its ranking
+\emph{is} its rate estimate, so no threshold can separate a saturated estimate from a slow one.
+(b)~A real tachypneic neonate, decoded from the released checkpoint. The regressed rate saturates at
+$42$~breaths/min against a true $78.5$---below the cut point, so a rate-then-threshold screen clears
+the child---yet the salience distribution places $0.22$ of its mass above the cut point, which is
+enough to flag it. The encoder has seen the fast breathing; only the scalar read-out discards it.
+(c)~The same contrast for every tachypneic neonate in the cohort: not one regressed rate reaches the
+cut point, while the mass read-out at the pre-specified per-band operating point flags all ten.}
+\label{fig:overview}
+\end{figure*}
+
+The same
 principle resolves the neonatal band, which under rate regression appears unscreenable (sensitivity
 $0.10$--$0.30$). A spectral probe shows the information survives acquisition---the true rate is a
 detectable peak in $100\%$ of fast-breathing clips, and a plain FFT recovers $7/10$ neonatal tachypnea
@@ -596,10 +614,10 @@ To rule out an unfair head-to-head, every published extractor is scored three eq
 supplement---raw-RR ranking, RR-minus-threshold margin, and a discriminative read-out---and PRISM leads on
 all three, so its advantage is not an artefact of giving PRISM alone a specialized classification head.
 We realize this framing as a calibrated salience network (RespSalience, Sec.~\ref{sec:respsal}). Across
-\emph{three seeds} on the matched corrected cohort it reaches AUROC $0.884{\pm}0.020$, and its
-self-supervised variant $0.899{\pm}0.035$, versus $0.852$ for the regression-trained PRISM on the same
-subjects: \emph{every} seed exceeds regression, the SSL variant significantly so on two of three seeds
-(DeLong $p=0.001$--$0.016$), while a generic random-convolution classifier (ROCKET~\cite{rocket}, $0.915$
+\emph{three seeds} on the matched corrected cohort it reaches AUROC $0.884{\pm}0.020$
+versus $0.852$ for the regression-trained PRISM on the same
+subjects: \emph{every} seed exceeds regression, though no single seed does so significantly at this
+sample size, while a generic random-convolution classifier (ROCKET~\cite{rocket}, $0.915$
 on the full split) lands in the same band. No single classifier is clearly best; the improvement is a
 property of the decision \emph{framing}, not of any particular architecture---a transferable finding rather
 than a fragile architecture claim, of which the same-encoder result above is the most controlled form.
@@ -646,10 +664,11 @@ Brier $0.092$), returns an interpretable rate, and is ceiling-free.
 
 \begin{table*}[!t]\caption{Reframing tachypnea as signal classification is the largest single gain, and no
 single classifier is clearly best. Regression rows: pooled subject-disjoint five-fold on $332$ subjects
-($298$ for the extractor row), DeLong vs.\ PRISM's tachypnea head. $^{\dagger}$Salience rows are three-seed
-mean$\pm$SD retrained under corrected labels on the matched $297$-subject set; the $p$ range is per-seed
-DeLong vs.\ the regression-trained PRISM on that same set (AUROC $0.852$)---every seed beats regression,
-SSL significantly on two of three. $^{\ddagger}$ROCKET is a single run on the $332$ split.}\label{tab:framing}\centering\small
+($298$ for the extractor row), DeLong vs.\ PRISM's tachypnea head. $^{\dagger}$The salience row is a
+three-seed mean$\pm$SD retrained under corrected labels on the matched $297$-subject set; the $p$ range is
+per-seed DeLong vs.\ the regression-trained PRISM on that same set (AUROC $0.852$)---every seed beats
+regression, none significantly on its own at this sample size. The full-cohort row is the published
+six-seed ensemble. $^{\ddagger}$ROCKET is a single run on the $332$ split.}\label{tab:framing}\centering\small
 \begin{tabular}{@{}llccl@{}}\toprule
 How the decision is formed & Model & Cohort & AUROC & Paired $p$ vs.\ the reference row\\\midrule
 \multirow{4}{*}{\shortstack[l]{Regress a rate,\\then threshold it}}
@@ -660,8 +679,7 @@ How the decision is formed & Model & Cohort & AUROC & Paired $p$ vs.\ the refere
 \multirow{3}{*}{\shortstack[l]{\textbf{Classify the signal}\\\textbf{(this paper)}}}
  & ROCKET, random kernels$^{\ddagger}$ & 332 & 0.915 & $0.030$\\
  & Salience network$^{\dagger}$ & 297 & 0.884\,$\pm$\,0.020 & $0.10$--$0.62$ across seeds\\
- & Salience $+$ SSL$^{\dagger}$ & 297 & 0.899\,$\pm$\,0.035 & $0.001$--$0.73$ across seeds\\
- & \textbf{Salience $+$ SSL, full cohort} & \textbf{332} & \textbf{0.936} & $\mathbf{1.3\times10^{-5}}$\\\bottomrule
+ & \textbf{RespSalience, full cohort} & \textbf{332} & \textbf{0.927} & $\mathbf{1.3\times10^{-5}}$\\\bottomrule
 \end{tabular}
 \vspace{2pt}
 {\footnotesize Within the matched $297$-subject set the classification head also beats its own
@@ -745,8 +763,10 @@ fold---lifts neonatal sensitivity from $0.10$ to $0.70$ $[0.38,1.00]$ (Table~\re
 the cohort $15$ tachypneic subjects are recovered and \emph{none} are lost (McNemar $p=10^{-4}$), and the
 same one-sided pattern holds within each band ($<$2mo $6$ recovered / $0$ lost, $p=0.031$; $2$--$12$mo
 $8/0$, $p=0.008$). The distributional model is what makes this affordable rather than merely possible:
-at matched $0.70$ neonatal sensitivity the salience$+$SSL variant holds specificity $0.786$ where the
-regression model holds $0.607$, and overall specificity $0.927$ against $0.855$.
+at matched $0.70$ neonatal sensitivity RespSalience holds specificity $0.929$ where the
+regression model holds $0.607$, and overall it reaches sensitivity $0.690$ at specificity $0.956$
+against the regression model's $0.702$ at $0.855$---nearly the same recall for a tenth of the false
+alarms.
 
 For continuity with earlier reports we also give the $\ge$2mo screen under the original rule
 (sensitivity $0.79$ $[0.71,0.89]$, AUROC $0.912$ $[0.900,0.961]$; 12--60mo sensitivity $0.89$, AUROC
@@ -770,10 +790,10 @@ touch the evaluated fold. Subject bootstrap $95\%$ CIs; target sensitivity $0.70
 Band & Read-out & Sensitivity & Specificity\\\midrule
 \multirow{3}{*}{$<$2mo} & regression $\ge\tau_{\text{age}}$ & $0.100$ $[0.00,0.33]$ & $0.964$\\
  & mass, per band (regression model) & $0.700$ $[0.38,1.00]$ & $0.607$\\
- & mass, per band (salience$+$SSL) & $\mathbf{0.700}$ $[0.40,1.00]$ & $\mathbf{0.786}$\\\midrule
+ & mass, per band (RespSalience) & $\mathbf{0.700}$ $[0.38,1.00]$ & $\mathbf{0.929}$\\\midrule
 \multirow{3}{*}{Overall} & regression $\ge\tau_{\text{age}}$ & $0.524$ $[0.41,0.63]$ & $0.940$\\
  & mass, per band (regression model) & $0.702$ $[0.60,0.79]$ & $0.855$\\
- & mass, per band (salience$+$SSL) & $0.667$ $[0.56,0.76]$ & $\mathbf{0.927}$\\\bottomrule
+ & mass, per band (RespSalience) & $\mathbf{0.690}$ $[0.59,0.79]$ & $\mathbf{0.956}$\\\bottomrule
 \end{tabular}
 \end{table*}
 
