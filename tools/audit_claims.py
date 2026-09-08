@@ -9,6 +9,13 @@ This walks the LaTeX, pulls out every number that reads like a result, and repor
 Coverage is by VALUE (a claim is covered if the harness checks that value in that neighbourhood of the
 paper), which is deliberately loose -- it is a triage tool for finding blind spots, not a proof.
 
+Known limitation, established by self-test rather than assumed: because matching is by value and not
+by position, a WRONG number that happens to coincide with a legitimate value elsewhere in the paper
+passes silently. Injecting a fabricated AUROC of 0.987 into the README was not flagged, because 0.987
+appears legitimately in the framing table; the stale 5.21 alongside it was caught. So a clean report
+means "no number here is unknown to the paper", not "every number here is right". Only
+verify_manuscript_claims.py establishes the latter.
+
     python tools/audit_claims.py                 # summary by section
     python tools/audit_claims.py --uncovered     # list the blind spots
     python tools/audit_claims.py --dupes         # same quantity stated with different values
@@ -27,6 +34,12 @@ VERIFIER = ROOT / "scripts" / "verify_manuscript_claims.py"
 SOURCES = ["prism_breath.tex", "appendix_additions.tex", "appendix_evals.tex",
            "appendix_reviewer_analyses.tex", "appendix_selection.tex",
            "appendix_reproducibility.tex", "prism_breath_supplementary.tex"]
+
+# Reader-facing prose outside the manuscript. The semantics differ: for the LaTeX the question is
+# "does anything re-derive this?", but a number on the front page has no business existing unless the
+# paper already claims it. The README advertised a superseded model for several commits precisely
+# because nothing checked it, so these are audited for AGREEMENT, not for derivation.
+MD_SOURCES = ["README.md", "dist/respsalience-weights-v1/README.md"]
 
 # A "result" number: 3-decimal metrics, p-values, percentages, and 2-decimal rates. Deliberately
 # excludes years, reference numbers, section numbers and table geometry.
@@ -69,10 +82,68 @@ def verifier_values():
     return vals
 
 
+def manuscript_values():
+    """Every result-like number the manuscript itself states, as rounded strings."""
+    vals = set()
+    for src in SOURCES:
+        p = MS / src
+        if not p.exists():
+            continue
+        for line in strip_comments(p.read_text(encoding="utf-8", errors="ignore")).splitlines():
+            for m in NUM.finditer(line):
+                try:
+                    v = float(re.sub(r"[\\%a-z{}]", "", m.group(1)))
+                except ValueError:
+                    continue
+                vals.update({f"{v:.3f}", f"{v:.2f}", f"{v:.1f}"})
+    return vals
+
+
+def audit_markdown(known):
+    """Flag numbers in reader-facing Markdown that neither the manuscript nor the harness states."""
+    bad = 0
+    print("\nMARKDOWN AGREEMENT (numbers the paper does not claim)")
+    print("-" * 82)
+    for src in MD_SOURCES:
+        p = ROOT / src
+        if not p.exists():
+            continue
+        stale, n = [], 0
+        in_code = False
+        for i, line in enumerate(p.read_text(encoding="utf-8", errors="ignore").splitlines()):
+            if line.lstrip().startswith("```"):
+                in_code = not in_code
+                continue
+            # Code blocks, links and badges carry versions and ids, not claims.
+            if in_code or "http" in line or line.lstrip().startswith("["):
+                continue
+            for m in NUM.finditer(line):
+                try:
+                    v = float(re.sub(r"[\\%a-z{}]", "", m.group(1)))
+                except ValueError:
+                    continue
+                if v > 1000 or (v == int(v) and v < 10):
+                    continue
+                n += 1
+                if not any(f"{v:.{d}f}" in known for d in (3, 2, 1)):
+                    stale.append((i + 1, m.group(1), line.strip()[:78]))
+        flag = "OK" if not stale else f"{len(stale)} UNMATCHED"
+        print(f"  {src:46s} {n:>4d} numbers   {flag}")
+        for ln, raw, ctx in stale[:12]:
+            print(f"      L{ln:<4d} {raw:>8s}  {ctx}")
+        bad += len(stale)
+    if bad:
+        print(f"\n  {bad} number(s) appear in reader-facing docs but nowhere in the manuscript or")
+        print("  the harness. Each is either stale or needs a claim behind it.")
+    return bad
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--uncovered", action="store_true")
     ap.add_argument("--dupes", action="store_true")
+    ap.add_argument("--strict", action="store_true",
+                    help="exit non-zero if reader-facing Markdown states a number the paper does not")
     a = ap.parse_args()
 
     covered = verifier_values()
@@ -139,7 +210,9 @@ def main():
                 continue
             where = ", ".join(f"{s}:{ln}" for s, ln, _ in sites[:6])
             print(f"  {v}  x{len(sites):<3d} {where}")
-    return 0
+
+    md_bad = audit_markdown(covered | manuscript_values())
+    return 1 if (a.strict and md_bad) else 0
 
 
 if __name__ == "__main__":

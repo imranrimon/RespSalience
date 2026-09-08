@@ -27,5 +27,8 @@ jobs:
       # are not public, so CI cannot run the numerical verification itself. It exists so a drop in
       # coverage is visible in the log when a section is added without harness support -- which is
       # how every number error in this paper's history went unnoticed.
-      - name: Claim-coverage audit (advisory)
-        run: python tools/audit_claims.py
+      # --strict fails the build if reader-facing Markdown states a result the paper does not claim.
+      # The LaTeX coverage figure stays advisory (CI has no datasets), but README drift is cheap to
+      # catch and expensive to ship: the front page advertised a superseded model for several commits.
+      - name: Claim-coverage audit
+        run: python tools/audit_claims.py --strict
