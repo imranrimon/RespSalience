@@ -190,6 +190,10 @@ def main():
     print("-" * 82)
     print(f"{'TOTAL':58s} {tot:>7d} {cov:>7d} {tot-cov:>5d}   "
           f"({100*cov/max(1,tot):.0f}% of result-like numbers re-derived)")
+    print("\n  NOTE: coverage is detected by scanning ck.add(...) literals, so checks that parse their")
+    print("  expected values out of the LaTeX at runtime are invisible here and counted as gaps.")
+    print("  tab:fullmetric is one such: its 60 cells ARE verified. Trust the claim count printed by")
+    print("  verify_manuscript_claims.py over this percentage.")
 
     if a.uncovered:
         print("\nUNBACKED (no harness check re-derives this value):")

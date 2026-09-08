@@ -509,6 +509,56 @@ def main() -> int:
         ck.add("saturation crossing: last negative cutoff", 1.1, float(neg), tol=0.01)
         ck.add("saturation crossing: first positive cutoff", 0.9, float(pos), tol=0.01)
 
+    # ---------------- appendix tab:fullmetric, parsed from the LaTeX itself ----------------
+    # The claimed values are read out of the table rather than restated here: restating them would
+    # create a second copy to keep in sync, which is the failure this harness exists to prevent.
+    from full_metric_comparison import point_metrics as _pm
+
+    _ap = ROOT / "manuscript" / "appendix_additions.tex"
+    if _ap.exists() and COMMON is not None:
+        _tex = _ap.read_text(encoding="utf-8", errors="ignore")
+        _COLS = ["PRISM-Breath", "EfficientPhys", "TS-CAN", "VIRENet", "DeepPhys", "PhysFormer"]
+        _RUNS = {"PRISM-Breath": PRISM, "EfficientPhys": "pedrr_kfold_efficientphys",
+                 "TS-CAN": "pedrr_kfold_tscan", "VIRENet": "pedrr_kfold_virenet",
+                 "DeepPhys": "pedrr_kfold_deepphys_100ep", "PhysFormer": "pedrr_kfold_physformer"}
+        # Table row label -> key returned by point_metrics.
+        _ROWS = {"AUROC": "AUROC", "AUROC margin": "AUROC_margin", "AUROC raw-RR": "AUROC_rawrr",
+                 "AUPRC": "AUPRC", "Se@Sp90": "Se@Sp90", "Sp@Se90": "Sp@Se90",
+                 "Sens": "Sens", "Spec": "Spec", "MAE": "MAE", "RMSE": "RMSE"}
+
+        _computed = {}
+        for _name, _tag in _RUNS.items():
+            _d = scored(_tag, age_map)
+            if _d is None:
+                continue
+            _g = _d[_d.sid.isin(COMMON)].sort_values("sid")
+            _f = pd.DataFrame({"gt_tachy": _g.y.to_numpy(int), "tachy_prob": _g.tachy_prob.to_numpy(float),
+                               "pred_rr": _g.pred_rr_bpm.to_numpy(float),
+                               "gt_rr": _g.gt_rr_bpm.to_numpy(float),
+                               "threshold": _g.thr.to_numpy(float)})
+            _computed[_name] = _pm(_f)
+
+        _n_rows = 0
+        for _line in _tex.splitlines():
+            _lab = _line.split("&")[0].strip()
+            _lab = re.sub(r"\$.*?\$", "", _lab).strip()      # drop the arrow macro
+            if _lab not in _ROWS or "&" not in _line:
+                continue
+            _cells = [c.strip() for c in _line.split("&")[1:]]
+            if len(_cells) < len(_COLS):
+                continue
+            _n_rows += 1
+            for _col, _cell in zip(_COLS, _cells):
+                _m = re.search(r"([\d.]+)", _cell.replace("\\textbf{", ""))
+                if not _m or _col not in _computed:
+                    continue
+                _claimed = float(_m.group(1))
+                _got = _computed[_col].get(_ROWS[_lab])
+                # MAE/RMSE are quoted to three decimals, the rest to three; tolerate rounding only.
+                ck.add(f"tab:fullmetric {_lab} / {_col}", _claimed, _got, tol=0.002)
+        if _n_rows == 0:
+            print("[warn] tab:fullmetric rows not parsed; table format may have changed")
+
     bad = ck.report()
     if bad:
         print("\nEvery MISMATCH is a number in the manuscript that its own artifacts do not support.")
