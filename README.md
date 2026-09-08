@@ -5,7 +5,8 @@
 [![checks](https://github.com/imranrimon/RespSalience/actions/workflows/checks.yml/badge.svg)](https://github.com/imranrimon/RespSalience/actions/workflows/checks.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
-[![Claims verified](https://img.shields.io/badge/manuscript%20claims-95%2F95%20verified-brightgreen.svg)](scripts/verify_manuscript_claims.py)
+[![Claims verified](https://img.shields.io/badge/manuscript%20claims-110%2F110%20verified-brightgreen.svg)](scripts/verify_manuscript_claims.py)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22656057.svg)](https://doi.org/10.5281/zenodo.22656057)
 
 Tachypnea — an age-elevated breathing rate — is the WHO's frontline sign for pediatric acute
 respiratory infection, and counting it by eye is the step that fails most often where the burden is
@@ -20,21 +21,22 @@ we could run under one protocol.
 
 | Method | Type | RR-MAE ↓ | Tachypnea AUROC ↑ | ΔAUROC | DeLong *p* |
 |---|---|---|---|---|---|
-| **RespSalience** *(proposed)* | distributional | **5.21** | **0.935** | — | — |
-| PRISM-Breath *(our baseline)* | regression | 6.42 | 0.826 | +0.109 | 3.2×10⁻⁵ |
-| DeepPhys | regression | 5.62 | 0.777 | +0.158 | 1.9×10⁻⁵ |
-| VIRENet | regression | 5.91 | 0.760 | +0.174 | 4.2×10⁻⁶ |
-| EfficientPhys | regression | 6.10 | 0.755 | +0.180 | 2.2×10⁻⁶ |
-| PhysFormer | regression | 6.65 | 0.734 | +0.200 | 4.5×10⁻¹⁰ |
-| TS-CAN | regression | 6.15 | 0.726 | +0.208 | 1.8×10⁻⁷ |
+| **RespSalience** *(proposed)* | distributional | **5.13** | **0.925** | — | — |
+| PRISM-Breath *(our baseline)* | regression | 6.42 | 0.826 | +0.099 | 3.6×10⁻⁵ |
+| DeepPhys | regression | 5.62 | 0.777 | +0.148 | 2.6×10⁻⁵ |
+| VIRENet | regression | 5.91 | 0.760 | +0.165 | 7.7×10⁻⁶ |
+| EfficientPhys | regression | 6.10 | 0.755 | +0.171 | 4.1×10⁻⁶ |
+| PhysFormer | regression | 6.65 | 0.734 | +0.191 | 9.0×10⁻¹⁰ |
+| TS-CAN | regression | 6.15 | 0.726 | +0.199 | 3.4×10⁻⁷ |
 
 <sub>298-subject cohort common to all methods, subject-disjoint five-fold CV, corrected age labels,
-identical decision rule. RespSalience is the three-seed ensemble. Paired exact McNemar on the WHO
-decision at a single operating point is **not** significant for any pair (*p* = 0.117–1.000); the
+identical decision rule. RespSalience is the six-seed deterministic ensemble. Paired exact McNemar on
+the WHO decision at a single operating point is **not** significant for any pair (*p* = 0.099–0.864); the
 ranking evidence is the AUROC gap, and we report both.</sub>
 
-RespSalience is the **simpler** of the two models: one channel, no multimodal fusion, no auxiliary
-components. That is the paper's point, not an accident of tuning.
+RespSalience is the **simpler** of the two models: one channel, no multimodal fusion, no pretraining,
+no auxiliary components. We tested self-supervised pretraining over six matched seeds and removed it —
+it changed AUROC by −0.0008 (*p* = 0.95). That is the paper's point, not an accident of tuning.
 
 ---
 
@@ -88,7 +90,7 @@ It prints each claim beside the value recomputed from the underlying per-fold pr
 non-zero on any mismatch:
 
 ```bash
-python scripts/verify_manuscript_claims.py          # 95 claims checked, 95 match
+python scripts/verify_manuscript_claims.py          # 110 claims checked, 110 match
 python scripts/verify_manuscript_claims.py --tol 0.002
 ```
 
@@ -99,7 +101,7 @@ by hand and drifted, and it is the guard against that recurring.
 | Paper element | Command |
 |---|---|
 | `tab:main` — proposed model vs prior work | `python scripts/verify_manuscript_claims.py` |
-| `tab:headline` — proposed vs baseline, per age band | `python scripts/train_resp_salience_ssl.py --seed {0,1,2} --kfold pedrr_kfold_main332 --tag _ssl332` |
+| `tab:headline` — proposed vs baseline, per age band | `python scripts/train_resp_salience_ssl.py --seed {0..5} --no-ssl --kfold pedrr_kfold_main332 --tag _nossl332det` |
 | `tab:sota` — five published extractors | `python scripts/full_metric_comparison.py --deepphys100 --prism-run outputs/paper_runs/pedrr_kfold_main332` |
 | `tab:selmatrix` — selection rule × model family | `python scripts/selection_matrix.py` |
 | `tab:abl` — ablation of the regression baseline | `python scripts/regenerate_supplementary_tables.py --prism-run pedrr_kfold_main332` |
@@ -107,7 +109,7 @@ by hand and drifted, and it is the guard against that recurring.
 | `tab:disttriage` — triage read-out comparison | `python scripts/distributional_triage.py` |
 | `fig:escalation` — neonatal escalation pathway | `python scripts/escalation_pathway.py --run-root pedrr_kfold_main332` |
 | `fig:framing` — decision-threshold sweep | `python scripts/framing_bradypnea.py` |
-| `sec:age` — age-conditional read-out | `python scripts/operating_point_readout.py --run-root outputs/paper_runs/pedrr_kfold_salience_ssl332_seed0` |
+| `sec:age` — age-conditional read-out | `python scripts/operating_point_readout.py --run-root outputs/paper_runs/pedrr_kfold_salience_published` |
 | `sec:extval` — external replication (negative) | `python scripts/nchsdb_headswap.py` and `python scripts/nchsdb_framing.py --seeds 5` |
 | Subgroup / fairness | `python scripts/subgroup_fairness.py --deepphys100 --prism-run outputs/paper_runs/pedrr_kfold_main332` |
 | Calibration and conformal coverage | `python scripts/calibration_diagnostics.py --deepphys100` |
@@ -131,8 +133,15 @@ and `scripts/reselect_baseline_checkpoints.py` gives every model the same treatm
 
 **The uncertainty layer inherits the read-out's weakness.** The deployed escalation triage forms a
 conformal interval around the *regressed* rate, which is the read-out the paper argues against.
-Replacing it with abstention on the salience mass cuts total downstream burden from 52.4% to 41.9%
-(paired reduction 0.106 [0.051, 0.163], McNemar *p* = 3.1×10⁻⁴) — see `scripts/distributional_triage.py`.
+Replacing it with abstention on the salience mass cuts total downstream burden from 52.4% to 44.3%
+(paired reduction 0.081, exact McNemar *p* = 0.006) — see `scripts/distributional_triage.py`. Split
+across independent seed halves the effect reaches significance in one and not the other, so the paper
+claims the burden reduction and not the accompanying safety improvement.
+
+**The advantage can be switched on and off.** Low-passing a clean contact-belt signal induces the
+saturation the mechanism requires, and the framing gain appears with it — Spearman ρ = +0.94 against
+measured saturation (*p* = 0.005), crossing zero exactly where the pass-band stops admitting 60
+breaths/min. `scripts/saturation_severity.py`.
 
 **A negative external replication, reported as such.** The framing advantage does *not* replicate on an
 independent neonatal cohort with a clean contact belt. We report the null, and localise the claim to
@@ -156,6 +165,23 @@ external/             vendored third-party baselines — treat as read-only
 
 `data/`, `outputs/`, and `external/` are gitignored: datasets, checkpoints, and vendored code are not
 redistributed here.
+
+## Trained weights
+
+The weights for the reported model are archived at
+**[10.5281/zenodo.22656057](https://doi.org/10.5281/zenodo.22656057)** — six seeds x five folds, plus
+the per-fold predictions every reported metric is derived from, and the weights of the self-supervised
+variant we tested and rejected (a null result cannot be checked from one arm).
+
+Each checkpoint stores the configuration needed to interpret it — the 6-90 bpm rate grid, sampling
+rate, window length, channel and band — because a salience head's output is meaningless without the
+grid it scores. Rebuild the archive locally with:
+
+```bash
+python scripts/build_release_bundle.py --zip
+```
+
+Training is deterministic, so the released weights can equally be regenerated from source.
 
 ## Data access
 

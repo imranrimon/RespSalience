@@ -1257,11 +1257,16 @@ DataBank~\cite{nchsdb} are obtained from their original providers (the NCH Sleep
 credentialed access); the radar phantom and the $50$-child radar set are public.
 The Pediatric-RR-332 cohort is publicly released through Mendeley Data
 (\href{https://doi.org/10.17632/72dd3rkttf.1}{10.17632/72dd3rkttf}) and requires no further permission to
-obtain. Trained model weights are not released. The repository contains the complete training and
-evaluation pipeline needed to reproduce them from the source data, together with the cached per-fold
-prediction files from which every reported number is re-derived by a single command
-(\texttt{scripts/verify\_manuscript\_claims.py}, $95$ claims). No dataset is redistributed by the
-repository: each remains governed by the terms of its original provider.
+obtain. The trained weights for the reported model are archived at
+\href{https://doi.org/10.5281/zenodo.22656057}{10.5281/zenodo.22656057}, together with the per-fold
+prediction files from which every reported number is derived and the weights of the self-supervised
+variant we tested and rejected---a null result cannot be checked from one arm, so both are released.
+The repository additionally contains the complete training and evaluation pipeline, and a single
+command re-derives every quantitative claim in this paper from the stored artifacts
+(\texttt{scripts/verify\_manuscript\_claims.py}, $110$ checks). Because training is deterministic
+(see Reproducibility), the released weights can also be regenerated exactly from the source data. No
+dataset is redistributed by either archive: each remains governed by the terms of its original
+provider.
 
 \section*{Declarations}
 \noindent\textbf{Ethics approval and consent.} No new human-subjects data were collected for this work. It

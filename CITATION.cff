@@ -10,6 +10,10 @@ authors:
     given-names: Muhammad Imran
     email: muhammadimran.hossain@mail.wvu.edu
     affiliation: West Virginia University
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.22656057
+    description: Trained model weights and per-fold predictions
 repository-code: 'https://github.com/imranrimon/RespSalience'
 abstract: >-
   Reference implementation and reproduction artifact for decision-aware
