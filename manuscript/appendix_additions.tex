@@ -70,7 +70,8 @@ this paper is about, measured on our own model: a rate regressor shrinks its ext
 the mean, so thresholding the point estimate under-detects even where the underlying ranking is better.
 The remedy we advocate is not a better regressor but a different read-out---an age-conditional operating
 point on the calibrated distribution, which raises neonatal sensitivity from $0.10$ to $0.70$
-(Section~\ref{sec:age})---and a sensitivity-first operating point, where the advantage reappears
+(the age-band read-out analysis of the main paper)---and a sensitivity-first operating point,
+where the advantage reappears
 decisively (Sp@Se90 $0.346$ vs.\ $0.046$--$0.207$). A reader who intends to deploy the naive WHO cutpoint
 on a predicted rate should prefer DeepPhys to our model; that is the honest reading of
 Table~\ref{tab:paired}, and it is exactly the practice this paper argues against.
@@ -436,7 +437,7 @@ $0.49$). So the \emph{locus} of divergence is where the mechanism predicts. What
 \emph{benefit} from divergence.
 
 We draw the conclusion this supports rather than the one we had hoped for. The framing gain reported in
-the main paper (Section~\ref{sec:framing}) is not obtainable by attaching a classification head to a
+the main paper's framing analysis is not obtainable by attaching a classification head to a
 regressor trained primarily to regress; it requires actually training the decision on the signal---a
 ROCKET classifier on the waveform, or a salience network over rates, which is how those experiments were
 run and where the gains of $+0.075$ to $+0.200$ appear. This is the same lesson as the component
@@ -511,7 +512,8 @@ The escalation pathway above has an internal inconsistency that we think is wort
 because it is the same mistake this paper argues against one level down. The triage forms a conformal
 interval around the \emph{regressed} rate and refers whenever that interval straddles the cutoff---so
 the layer that decides whom to screen is built on exactly the regress-then-threshold read-out that
-Section~\ref{sec:framing} shows to be the weaker way to reach a decision. It inherits that read-out's
+the main paper's framing analysis shows to be the weaker way to reach a decision. It inherits
+that read-out's
 failure mode: because the regressed rate saturates near $30$ for neonates whose true rate is $60$--$80$,
 the interval must be widened to $\pm19$~breaths/min before it can straddle the cutoff at all, and that
 width then forces referrals across every other band as collateral.
@@ -568,7 +570,7 @@ RespSalience salience mass & $\mathbf{44.3\%}$ & \textbf{1} & \textbf{0}\\\botto
 %% source: scripts/selection_matrix.py, scripts/identify_baseline_checkpoint.py
 %% Moved here from the results section: this defends the fairness of the comparison rather than
 %% advancing the paper's claim.
-Section~\ref{sec:objective} showed that the training objective changes which model a fixed
+The main paper's objective experiment showed that the training objective changes which model a fixed
 representation yields. The same is true one level up, at model selection, and auditing it produced a
 result we did not expect.
 
@@ -598,7 +600,8 @@ predicted rate, so its ranking \emph{is} its rate estimate and there is no separ
 for. A model with an independent decision pathway has two objectives that can trade.
 \emph{A regress-then-threshold pipeline cannot dissociate regression accuracy from clinical utility,
 because its ranking is its rate.} That is why RR-MAE orders the five extractors almost perfectly
-(Sec.~\ref{sec:sota}) and fails only when compared across a change of objective.
+(the main paper's comparison against published extractors) and fails only when compared across
+a change of objective.
 
 Under a fully matched protocol---every model selected on validation AUROC, scored on the same
 $298$-subject cohort used throughout---PRISM attains $0.848$ against $0.716$--$0.778$, significantly
@@ -651,11 +654,12 @@ on this cohort, where the live modalities have similar signal quality.
 Trained on Pediatric-RR and evaluated on the external AIR-400 infant cohort, PRISM attains RR-MAE $3.12$,
 competitive with the infant-specific SOTA~\cite{infant_air}; in-domain on AIR-400 it reaches $2.93$.
 Hand-crafted optical flow collapses out of domain ($11.3$--$11.8$), which justifies the learned flow
-channel (Table~\ref{tab:crossdata}).
+channel (cross-dataset table, main paper).
 
 \subsection{Calibration, decision curve, and equity}\label{sec:calib}
 PRISM is well-calibrated (ECE $0.064$, Brier $0.110$) and, on decision-curve analysis, its net benefit
-exceeds both treat-all and treat-none at every threshold (Fig.~\ref{fig:calib}). The age-conditional
+exceeds both treat-all and treat-none at every threshold (calibration figure, main paper). The
+age-conditional
 conformal layer attains its nominal coverage when calibrated leave-one-fold-out: at $\alpha{=}0.20$ the
 empirical coverage is $0.83$ ($<$2mo, $\hat q{=}25.3$), $0.81$ ($2$--$12$mo, $\hat q{=}11.8$) and $0.81$
 ($12$--$60$mo, $\hat q{=}6.4$), i.e.\ $0.81$ overall against a $0.80$ target. This is a property of the

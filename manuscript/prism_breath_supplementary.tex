@@ -117,8 +117,8 @@ CliffPhys-style backbone & 332 & 6.53 & 0.850 & $0.280$ (n.s.) \\\bottomrule
 Tables~\ref{tab:s5}--\ref{tab:s6} report the exact settings used. Both models are compact: the
 PRISM-Breath baseline uses $d_{\text{model}}=64$ and sequence length $300$, and RespSalience is a
 four-block one-dimensional convolutional encoder ($32/64/128/128$ channels) followed by a linear
-salience head over $169$ rate bins. Headline operating points for RespSalience are averaged over three
-training seeds ($0,1,2$).
+salience head over $169$ rate bins. Headline operating points for RespSalience are averaged over six
+training seeds ($0$--$5$); training is deterministic, so each is exactly reproducible.
 
 \begin{table}[!t]
 \caption{PRISM-Breath model and supervised-training hyperparameters.}
@@ -194,9 +194,9 @@ $100$ epochs ($\approx$11 GPU-days) would be a welcome addition, but on this evi
 that it would close a gap ten times the size of the effect it produces.
 
 We stress a structural point that makes the whole question secondary. The paper's central claims do
-not rest on any comparison between differently-trained networks. The head-swap
-(Sec.~\ref{sec:framing}) applies two read-outs to \emph{the same trained extractor's own signal}, and
-the objective experiment (Sec.~\ref{sec:objective}) swaps the loss on a \emph{frozen} encoder. In both,
+not rest on any comparison between differently-trained networks. The head-swap of the main paper
+applies two read-outs to \emph{the same trained extractor's own signal}, and
+the objective experiment of the main paper swaps the loss on a \emph{frozen} encoder. In both,
 the representation---and hence its training budget---is held fixed and cancels from the comparison. A
 reader who distrusts the cross-model table entirely can still evaluate the paper's thesis from those
 two experiments alone.

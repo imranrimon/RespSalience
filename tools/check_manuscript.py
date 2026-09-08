@@ -37,6 +37,33 @@ def main() -> int:
     for r in sorted(refs - labels):
         problems.append(f"dangling reference: {r}")
 
+    # The sources are two SEPARATE documents, not one. Pooling their labels hides the failure that
+    # actually reaches the PDF: a \ref pointing across the boundary renders as '??'. The main paper
+    # stands alone; the supplementary is prism_breath_supplementary.tex with the appendix fragments
+    # pasted in (see the header of appendix_additions.tex).
+    UNITS = {
+        "main paper": ["prism_breath.tex"],
+        "supplement": ["prism_breath_supplementary.tex", "appendix_additions.tex",
+                       "appendix_evals.tex", "appendix_reviewer_analyses.tex",
+                       "appendix_selection.tex", "appendix_reproducibility.tex",
+                       "supplementary_tables_regenerated.tex", "tripod_checklist.tex"],
+    }
+    for unit, files in UNITS.items():
+        have = [f for f in files if (MS / f).exists()]
+        if not have:
+            continue
+        blob = "".join((MS / f).read_text(encoding="utf-8", errors="ignore") for f in have)
+        u_lab = set(re.findall(B + B + r"label\{([^}]+)\}", blob))
+        u_ref = set(re.findall(B + B + r"(?:ref|autoref|cref|eqref)\{([^}]+)\}", blob))
+        for r in sorted(u_ref - u_lab):
+            where = next((f for f in present
+                          if r in set(re.findall(B + B + r"label\{([^}]+)\}",
+                                                 (MS / f).read_text(encoding="utf-8", errors="ignore")))),
+                         "nowhere")
+            problems.append(
+                f"cross-document reference: {unit} cites '{r}' but its label is in {where}; "
+                f"this renders as ?? -- use prose instead")
+
     bib = MS / "prism_breath.bib"
     if bib.exists():
         keys = set(re.findall(r"@\w+\{([^,]+),", bib.read_text(encoding="utf-8")))

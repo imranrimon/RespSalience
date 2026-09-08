@@ -128,7 +128,7 @@ three of them.
 \emph{Second, the youngest and highest-risk group is unreachable by the current RGB pipeline} (Fig.~\ref{fig:paradigm}). For true neonatal rates of
 $60$--$80$~breaths/min, the regressed rate is pulled roughly $17$~breaths/min below truth; no camera method we
 tested recovers neonatal tachypnea, and a controlled spectral probe finds the raw RGB signal's respiratory
-SNR itself attenuates $\sim$$3\times$ at neonatal rates (App.~\ref{app:reviewer}), pointing to an
+SNR itself attenuates $\sim$$3\times$ at neonatal rates (supplementary material), pointing to an
 acquisition-limited ceiling rather than a purely algorithmic one. Rather than hide this behind a favorable average, we make it a
 design decision (defer all neonates to a clinician) and point to a different sensing modality---radar---%
 as a future route to the band the current RGB pipeline cannot reach.
@@ -147,7 +147,8 @@ function of its predicted rate, so its ranking \emph{is} its rate and the two qu
 dissociate. We demonstrate this by intervention: giving all five extractors a decision-aware
 checkpoint-selection criterion moves their AUROC by ${-}0.010$ to ${+}0.017$ (all $p\ge0.59$) while
 uniformly improving their RR-MAE, whereas the same intervention on a model with an independent decision
-pathway trades one metric against the other (Sec.~\ref{sec:selmatrix}). This explains both the
+pathway trades one metric against the other (the selection-rule analysis in the supplementary
+material). This explains both the
 correlation above and its failure, and it identifies model selection as part of the decision rule---an
 audit that also revealed that the published extractors were never checkpoint-selected at all.
 
@@ -276,7 +277,8 @@ it.
 
 \subsection{RespSalience: the proposed model}\label{sec:respsal}
 This is the model we propose and evaluate as our primary system. It follows from the analysis in
-Sec.~\ref{sec:framing} and Sec.~\ref{sec:selmatrix}: the dominant clinical gain comes not from any
+Sec.~\ref{sec:framing} and the selection-rule analysis in the supplement: the dominant clinical
+gain comes not from any
 architectural component but from abandoning rate \emph{regression} altogether. Following fundamental-frequency estimation in
 audio~\cite{crepe,spice}, we reframe the task: a compact one-dimensional network maps a modality signal to
 a \emph{salience} distribution $s(\cdot)$ over a grid of candidate rates ($6$--$90$~breaths/min,
@@ -1286,7 +1288,7 @@ interests.\\
 methodological model-development study; it is not a clinical trial and was not prospectively registered.
 The analysis plan was not pre-registered, and we mark throughout which analyses were pre-specified and
 which were exploratory, including those that produced negative results
-(Sec.~\ref{sec:extval}, Sec.~\ref{sec:selmatrix}).
+(Sec.~\ref{sec:extval}, and the selection-rule analysis in the supplementary material).
 
 \bibliographystyle{IEEEtran}
 \bibliography{prism_breath}
