@@ -1,0 +1,59 @@
+RespSalience
+Copyright (c) 2026 Muhammad Imran Hossain
+West Virginia University
+
+This software is distributed under the MIT License; see LICENSE for the full
+terms. The notices below do not modify, restrict, or add conditions to that
+license. They record facts a user of this software needs to know.
+
+
+1. NOT A MEDICAL DEVICE
+-----------------------
+This is research software. It is NOT a medical device. It has NOT been cleared,
+approved, or certified by the U.S. Food and Drug Administration or by any other
+regulatory authority, and it MUST NOT be used to inform diagnosis, triage,
+treatment, or any other care decision for an individual patient.
+
+Tachypnea is a screening sign, not a diagnosis. A respiratory rate produced by
+this software is an estimate from video and carries error that is documented,
+age-dependent, and in the neonatal band severe: every camera-based extractor
+evaluated in the accompanying work saturates near 30 breaths/min for true rates
+of 60-80 breaths/min. Infants under two months are escalated to a contact or
+radar measurement by design rather than screened. Anyone building on this work
+should read the limitations section of the accompanying manuscript before
+drawing conclusions from its outputs.
+
+
+2. DATASETS ARE NOT COVERED BY THIS LICENSE
+-------------------------------------------
+No dataset is distributed with or licensed by this software. Every dataset used
+in the accompanying work remains governed solely by the terms of its own
+provider, including credentialed-access agreements where applicable:
+
+  Pediatric-RR-332     Mendeley Data, DOI 10.17632/72dd3rkttf
+  NCH Sleep DataBank   PhysioNet, credentialed access
+  AIR-125 / AIR-400    available from the original authors
+
+Obtaining this software grants no right of any kind to those datasets. Users are
+responsible for obtaining their own access and for complying with the applicable
+data use agreements, including any restrictions on redistribution and on attempts
+to re-identify individuals.
+
+
+3. THIRD-PARTY COMPONENTS
+-------------------------
+The `external/` directory contains vendored third-party implementations that are
+NOT covered by this project's license. Each retains the license of its original
+authors, and those terms govern its use:
+
+  external/air-400                        AIR-125/AIR-400 baseline and preprocessing
+  external/Infant-Respiration-Estimation  PhysNet, TS-CAN, DeepPhys, EfficientPhys, VIRENet
+  external/pyflow                         optical flow
+
+Consult the license file within each subdirectory before redistributing.
+
+
+4. CITATION
+-----------
+If you use this software or the analyses it produces, please cite the
+accompanying manuscript. See CITATION.cff.

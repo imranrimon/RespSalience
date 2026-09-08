@@ -27,6 +27,7 @@ keywords:
   - pediatric
   - clinical decision support
   - calibration
+license: MIT
 license-url: 'https://github.com/imranrimon/RespSalience/blob/main/LICENSE'
 references:
   - type: article

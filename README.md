@@ -4,7 +4,7 @@
 
 [![checks](https://github.com/imranrimon/RespSalience/actions/workflows/checks.yml/badge.svg)](https://github.com/imranrimon/RespSalience/actions/workflows/checks.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
-[![License: Research Use](https://img.shields.io/badge/license-Research%20Use-lightgrey.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
 [![Claims verified](https://img.shields.io/badge/manuscript%20claims-95%2F95%20verified-brightgreen.svg)](scripts/verify_manuscript_claims.py)
 
 Tachypnea — an age-elevated breathing rate — is the WHO's frontline sign for pediatric acute
@@ -198,8 +198,12 @@ under *Cite this repository*.
 
 ## License
 
-Research use. Non-commercial academic research and teaching, with attribution. See [`LICENSE`](LICENSE)
-for the full terms, including the medical-device disclaimer and the dataset carve-out.
+[MIT](LICENSE) — permissive, attribution-only, commercial use permitted.
+
+[`NOTICE`](NOTICE) carries three things the license deliberately does not restrict but that you need to
+know: this is **not a medical device**; **no dataset is licensed by this repository** (each remains under
+its provider's own terms, including credentialed access); and `external/` contains vendored third-party
+baselines under their original authors' licenses.
 
 ## Contact
 
