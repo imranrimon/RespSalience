@@ -1269,21 +1269,33 @@ The model implementation and all training, evaluation, and analysis scripts are 
 \url{https://github.com/imranrimon/RespSalience}. AIR-125/400~\cite{infant_air} and the NCH Sleep
 DataBank~\cite{nchsdb} are obtained from their original providers (the NCH Sleep DataBank under PhysioNet
 credentialed access); the radar phantom and the $50$-child radar set are public.
-Access terms for the Pediatric-RR-332 cohort and the release of trained model checkpoints are
-\emph{[Author to complete: state the repository/DOI, or ``available from the data custodian on reasonable
-request,'' and whether checkpoints are released].}
+The Pediatric-RR-332 cohort is publicly released through Mendeley Data
+(\href{https://doi.org/10.17632/72dd3rkttf.1}{10.17632/72dd3rkttf}) and requires no further permission to
+obtain. Trained model weights are not released. The repository contains the complete training and
+evaluation pipeline needed to reproduce them from the source data, together with the cached per-fold
+prediction files from which every reported number is re-derived by a single command
+(\texttt{scripts/verify\_manuscript\_claims.py}, $95$ claims). No dataset is redistributed by the
+repository: each remains governed by the terms of its original provider.
 
 \section*{Declarations}
-\noindent\textbf{Ethics approval and consent.} \emph{[Author to complete before submission: the institutional
-review board / research ethics committee that approved this study of pediatric video, its approval reference,
-and the guardian informed-consent or waiver procedure. This pediatric human-subjects study must not be
-submitted without a genuine ethics statement; no reference number is fabricated here.]}\\
-\noindent\textbf{Funding.} \emph{[Author to complete: funding sources and grant numbers, or a statement that
-no specific funding was received.]}\\
-\noindent\textbf{Competing interests.} \emph{[Author to complete: declare any competing interests, or state
-that none exist.]}\\
-\noindent\textbf{Registration.} \emph{[Author to complete: a registration/protocol identifier if applicable;
-this retrospective secondary analysis of an existing cohort was otherwise not prospectively registered.]}
+\noindent\textbf{Ethics approval and consent.} No new human-subjects data were collected for this work. It
+is a retrospective secondary analysis of de-identified datasets that were either already publicly released
+(Pediatric-RR-332; the radar thorax simulator and the $50$-child radar set) or obtained under the data use
+agreement governing their access (the NCH Sleep DataBank, via PhysioNet credentialed access), together with
+a research cohort obtained from its original authors (AIR-125/400). Ethical approval for the original data
+collection, and guardian informed consent or its documented waiver, were the responsibility of the
+respective source studies and are reported in their own publications and data descriptors. Because the
+analysis used only de-identified data that the investigators did not collect and cannot re-identify, no
+additional institutional review was sought. No attempt was made to re-identify any participant.\\
+\noindent\textbf{Funding.} This research received no specific grant from any funding agency in the public,
+commercial, or not-for-profit sectors.\\
+\noindent\textbf{Competing interests.} The author declares no competing financial or non-financial
+interests.\\
+\noindent\textbf{Registration.} This work is a retrospective secondary analysis of existing cohorts and a
+methodological model-development study; it is not a clinical trial and was not prospectively registered.
+The analysis plan was not pre-registered, and we mark throughout which analyses were pre-specified and
+which were exploratory, including those that produced negative results
+(Sec.~\ref{sec:extval}, Sec.~\ref{sec:selmatrix}).
 
 \bibliographystyle{IEEEtran}
 \bibliography{prism_breath}
