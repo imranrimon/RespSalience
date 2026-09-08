@@ -108,7 +108,7 @@ the decision threshold. We show, under matched cross-validation, that four of fi
 match or beat our model on MAE while all five score lower on the clinical endpoint, significantly so for
 three of them.
 \emph{Second, the youngest and highest-risk group is unreachable by the current RGB pipeline} (Fig.~\ref{fig:paradigm}). For true neonatal rates of
-$60$--$80$~breaths/min, the extracted optical-flow waveform saturates near $35$; no camera method we
+$60$--$80$~breaths/min, the regressed rate is pulled roughly $17$~breaths/min below truth; no camera method we
 tested recovers neonatal tachypnea, and a controlled spectral probe finds the raw RGB signal's respiratory
 SNR itself attenuates $\sim$$3\times$ at neonatal rates (App.~\ref{app:reviewer}), pointing to an
 acquisition-limited ceiling rather than a purely algorithmic one. Rather than hide this behind a favorable average, we make it a
@@ -151,7 +151,7 @@ AUROC $0.907\pm0.036$ over three seeds ($0.936$ ensembled) against $0.827$
 consequence. Under rate regression the band appears unscreenable (sensitivity $0.10$). It is not: the
 true rate remains a detectable spectral peak in $100\%$ of fast-breathing clips, and the model's own
 ranking is nearly unimpaired. What fails is thresholding a rate that regression has shrunk toward the
-training mean (bias $-15.3$~breaths/min at RR~$\ge\!60$). The distributional read-out reaches AUROC
+training mean (bias $-16.9$~breaths/min at RR~$\ge\!60$). The distributional read-out reaches AUROC
 $0.957$ in this band against the baseline's $0.650$, and an age-specific operating point chosen on
 out-of-fold data alone lifts neonatal sensitivity from $0.30$ to $0.80$, recovering $15$ tachypneic
 subjects cohort-wide while losing none ($p=10^{-4}$)---without touching the sensor, the extractor or
@@ -509,12 +509,15 @@ of agreement at the cohort level; the single-observer row is shown only to indic
 \emph{would} have been under a weaker reference. Per-video reader values are not available to us, so no
 row here is an observed disagreement rate. Source: \texttt{scripts/label\_noise\_ceiling.py}.}
 \label{tab:ceiling}\centering\small
-\begin{tabular}{@{}lcccc@{}}\toprule
-Assumed reader error & SD & Flip rate & AUROC ceiling & Sens.\ ceiling\\\midrule
-\textbf{VEP-consistent (assumed)} & \textbf{1.35} & \textbf{0.022} & \textbf{0.998} & \textbf{0.953}\\
-\quad optimistic / pessimistic & 1.0 / 2.0 & 0.016 / 0.034 & 0.999 / 0.995 & 0.967 / 0.924\\\midrule
-\emph{if a single bedside count} & 2.6--6.2 & 0.063 & 0.981 & 0.861\\\midrule
-\multicolumn{3}{@{}l}{\emph{our model, as a fraction of the VEP ceiling}} & $93.8\%$ & $80.0\%$\\
+\begin{tabular}{@{}lccccc@{}}\toprule
+ & Reader SD & Labels that & \multicolumn{2}{c}{Best attainable by any model} & \\
+Scenario for the reference standard & (br/min) & would flip & AUROC & Sensitivity & \\\midrule
+Panel agrees closely (optimistic) & 1.0 & $1.6\%$ & 0.999 & 0.967 & \\
+\textbf{Panel as measured} & \textbf{1.35} & $\mathbf{2.2\%}$ & \textbf{0.998} & \textbf{0.953} & \\
+Panel agrees loosely (pessimistic) & 2.0 & $3.4\%$ & 0.995 & 0.924 & \\\midrule
+\emph{Counterfactual: a single bedside count} & 2.6--6.2 & $6.3\%$ & 0.981 & 0.861 & \\\midrule
+\multicolumn{3}{@{}l}{\textbf{Our model attains}} & \textbf{0.935} & \textbf{0.762} & \\
+\multicolumn{3}{@{}l}{\emph{\quad as a fraction of the measured ceiling}} & $93.8\%$ & $80.0\%$ & \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -536,28 +539,31 @@ head at all---it is in the extracted signal and the training recipe, not the seq
 depth.
 
 \subsection{Where the performance comes from: a component isolation}\label{sec:simple}
-Table~\ref{tab:simple} isolates the source of the clinical signal, evaluating each stage on the same
-subject-disjoint folds. The \emph{raw} extracted flow, read out by a plain FFT with no learned encoder,
-discriminates tachypnea at only AUROC $0.723$ (stable across band choices)---no better than the end-to-end
-EfficientPhys baseline ($0.745$). PRISM's compact per-modality encoder (spectral features, a temporal scan
-block, and self-supervised pretraining) lifts this to $0.873$ (paired DeLong $p<10^{-4}$): this is where
-the performance is created. The deep fusion head then adds nothing ($0.827$); a plain logistic regression
-on the encoder's per-modality outputs matches it ($0.894$; $p=0.23$), and even a linear rule on the single
-encoded flow-RR reaches $0.873$. The clinical advantage is thus attributable to the \emph{learned
-per-modality encoder}---not the raw extraction (mediocre) and not the fusion architecture (unnecessary),
-consistent with the ablation (Table~\ref{tab:abl}). The parsimonious deployable model is therefore
-extractor~$\rightarrow$~compact encoder~$\rightarrow$~linear readout.
+Table~\ref{tab:simple} isolates where the clinical signal appears, with every stage evaluated on the
+same $298$ subjects and the same subject-disjoint folds, so that each row is directly comparable to the
+one above it. Reading down the table: the \emph{raw} extracted flow, read out by a plain FFT with no
+learned component, discriminates tachypnea at $0.685$. A published end-to-end extractor reaches $0.755$.
+Our per-modality encoder followed by a plain logistic regression on its outputs reaches $0.754$---that
+is, \emph{the encoder alone does not beat prior work}. Adding the deep fusion head brings $0.826$, a gain
+of $0.072$ that is only marginal in a paired test ($p=0.075$). Replacing the read-out---same signal, same
+encoder, no additional parameters devoted to fusion---brings $0.935$ ($p=3.3{\times}10^{-5}$ against the
+fusion head).
 
-\begin{table*}[!t]\caption{Component isolation: tachypnea AUROC by pipeline stage on identical
-subject-disjoint folds (332 subjects). The learned \emph{encoder}---not the raw extraction and not the
-fusion head---is where most of the clinical signal appears.}\label{tab:simple}\centering\small
-\begin{tabular}{@{}lccc@{}}\toprule
-Pipeline stage & $n$ & AUROC & $\Delta$ / test\\\midrule
-Raw flow, FFT (no encoder) & 297 & 0.723 & $\approx$ raw extraction\\
-Baseline EfficientPhys (end-to-end) & 298 & 0.755 & published\\
-$+$ per-modality encoder (SSL, spectral, scan) & 297 & \textbf{0.873} & $+0.15$, DeLong $p{<}10^{-4}$\\
-$+$ deep fusion head (full PRISM) & 332 & 0.827 & $+0.008$, n.s.\\
-Logistic regression on encoder outputs & 332 & 0.894 & n.s.\ vs.\ head\\\bottomrule
+The progression makes the paper's claim concrete. Each learned stage of the \emph{estimation} pipeline
+buys something, but the single largest step, and the only one that is unambiguously significant, is the
+one that changes \emph{how the decision is read out of the signal} rather than how the signal is
+encoded. We draw the deployable conclusion accordingly: extraction, a compact encoder, and a
+distributional read-out, with the fusion machinery omitted.
+
+\begin{table*}[!t]\caption{Component isolation on a single cohort: every stage is evaluated on the same $298$ subjects and the same subject-disjoint folds, so each row is comparable to the one above it. The final column is the paired change against the preceding row (DeLong). The last three rows share one encoder and differ only in how the decision is read out of it. Source: \texttt{scripts/component\_isolation.py}.}\label{tab:simple}\centering\small
+\begin{tabular}{@{}llcc@{}}\toprule
+Pipeline stage & What it adds & AUROC & vs.\ row above\\\midrule
+Raw extracted flow, FFT read-out & nothing learned & 0.685 & ---\\
+Published extractor (EfficientPhys) & end-to-end learning & 0.755 & $+0.070$\\
+Our encoder $+$ linear read-out & per-modality encoding & 0.754 & $-0.001$, n.s.\\
+\quad $+$ deep fusion head & reliability-weighted fusion & 0.826 & $+0.072$, $p{=}0.075$\\
+\quad $+$ distributional read-out & \textbf{how the decision is formed} & \textbf{0.935} & $\mathbf{+0.109}$, $p{=}3.3{\times}10^{-5}$\\
+\bottomrule
 \end{tabular}
 \vspace{2pt}
 {\footnotesize The $+0.15$ encoder gain is measured within the $297$-subject learned-flow set (rows~1
@@ -617,12 +623,11 @@ and the regressed rate is least reliable.}\label{fig:framing-thr}
 \end{figure*}
 
 The reframing also attacks the neonatal blind spot. A salience over a rate grid has no regression ceiling,
-so the classifier recovers \emph{some} discrimination in the $<$2-month band where regression collapses:
-AUROC rises from $0.668$ (PRISM rate) to $0.779$ (salience)---a modest recovery, and self-supervised
-pretraining does \emph{not} further help this band ($0.779$)---while predicted rates still track true rates
-past the $\sim$35~breaths/min ceiling of every regressor (Fig.~\ref{fig:salience}). The neonatal subgroup is
-small ($n{=}38$, $10$ positive, wide confidence intervals), so we present this as \emph{exploratory}
-supporting evidence for the framing argument; Sec.~\ref{sec:age} takes the neonatal case up directly and
+so the classifier recovers discrimination in the $<$2-month band where regression collapses: on the
+headline cohort AUROC rises from $0.650$ to $0.957$ (Table~\ref{tab:headline}), and predicted rates
+continue to track true rates in the range where the regressed estimate is pulled some $17$~breaths/min
+below truth (Fig.~\ref{fig:salience}a). The neonatal subgroup is small ($n{=}38$, $10$ positive, wide
+confidence intervals), so we treat the magnitude as an effect size rather than a specification; Sec.~\ref{sec:age} takes the neonatal case up directly and
 shows the band is screenable once the read-out is age-conditional, while retaining neonatal escalation as
 a conservative safety policy. Among the tied classifiers we
 recommend the salience network for deployment: unlike ROCKET it is calibrated out of the box (ECE $0.053$,
@@ -634,15 +639,18 @@ single classifier is clearly best. Regression rows: pooled subject-disjoint five
 mean$\pm$SD retrained under corrected labels on the matched $297$-subject set; the $p$ range is per-seed
 DeLong vs.\ the regression-trained PRISM on that same set (AUROC $0.852$)---every seed beats regression,
 SSL significantly on two of three. $^{\ddagger}$ROCKET is a single run on the $332$ split.}\label{tab:framing}\centering\small
-\begin{tabular}{@{}llccc@{}}\toprule
-Paradigm & Model & $n$ & AUROC & $p$ vs.\ PRISM\\\midrule
-\multirow{4}{*}{Regression $\to$ threshold} & Published extractors & 298 & 0.73--0.78 & ---\\
- & PRISM rate $\to$ threshold & 332 & 0.830 & ---\\
- & PRISM encoder (flow) & 297 & 0.873 & ---\\
- & Full PRISM (tachy head) & 332 & 0.827 & ref\\\midrule
-\multirow{3}{*}{\textbf{Classification (ours)}} & ROCKET (random kernels)$^{\ddagger}$ & 332 & 0.915 & $0.030$\\
- & \textbf{Salience network}$^{\dagger}$ & 297 & \textbf{0.884$\pm$0.020} & $0.10$--$0.62$\\
- & Salience $+$ SSL$^{\dagger}$ & 297 & 0.899$\pm$0.035 & $\mathbf{0.001}$--$0.73$\\\bottomrule
+\begin{tabular}{@{}llccl@{}}\toprule
+How the decision is formed & Model & Cohort & AUROC & Paired $p$ vs.\ the reference row\\\midrule
+\multirow{4}{*}{\shortstack[l]{Regress a rate,\\then threshold it}}
+ & Published extractors & 298 & 0.73--0.78 & ---\\
+ & Rate $\to$ threshold (same model) & 332 & 0.830 & ---\\
+ & Encoder rate, flow only & 297 & 0.873 & ---\\
+ & \emph{Full baseline (reference row)} & 332 & 0.827 & ---\\\midrule
+\multirow{3}{*}{\shortstack[l]{\textbf{Classify the signal}\\\textbf{(this paper)}}}
+ & ROCKET, random kernels$^{\ddagger}$ & 332 & 0.915 & $0.030$\\
+ & Salience network$^{\dagger}$ & 297 & 0.884\,$\pm$\,0.020 & $0.10$--$0.62$ across seeds\\
+ & Salience $+$ SSL$^{\dagger}$ & 297 & 0.899\,$\pm$\,0.035 & $0.001$--$0.73$ across seeds\\
+ & \textbf{Salience $+$ SSL, full cohort} & \textbf{332} & \textbf{0.936} & $\mathbf{1.3\times10^{-5}}$\\\bottomrule
 \end{tabular}
 \vspace{2pt}
 {\footnotesize Within the matched $297$-subject set the classification head also beats its own
@@ -652,10 +660,7 @@ rule, paired DeLong $p=0.004$.}
 
 \begin{figure*}[!t]\centering
 \includegraphics[width=7.0in]{fig8_salience.pdf}
-\caption{RespSalience. (a) Predicted vs.\ true rate: the salience classifier (blue) tracks high rates,
-while rate regression (red) saturates at the $\sim$35~breaths/min ceiling. (b) Per-age-band tachypnea
-AUROC: the classifier recovers neonatal ($<$2mo) discrimination that regression loses ($95\%$
-CIs).}\label{fig:salience}
+\caption{RespSalience against the regression baseline, both computed from the prediction files used for Tables~\ref{tab:headline} and~\ref{tab:main}. (a) Predicted against true rate: the regressed estimate is pulled toward the training mean, under-predicting genuinely fast breathers by about $17$~breaths/min, which is what carries them across the WHO neonatal threshold (shaded). The distributional read-out continues to track. (b) Tachypnea AUROC by WHO age band with subject-bootstrap $95\%$ intervals; the gain is monotone in difficulty and largest in the band where the screen is weakest. Source: \texttt{scripts/make\_fig\_salience.py}.}\label{fig:salience}
 \end{figure*}
 
 \subsection{Isolating the objective from the representation}\label{sec:objective}
@@ -695,9 +700,7 @@ Focal (classification) & --- & 0.879 & $0.029$\\
 
 \begin{figure}[!t]\centering
 \includegraphics[width=3.4in]{fig9_isolation.pdf}
-\caption{Where the performance comes from. Within rate regression (grey), the learned encoder is the main
-gain (raw FFT $0.72$ to encoder $0.87$) and the fusion head is inert; switching to classification (blue)---
-ROCKET, salience, salience$+$SSL---is a further, model-agnostic jump.}\label{fig:isolation}
+\caption{Where the clinical signal appears. Every stage is evaluated on the same $298$ subjects and folds, so each bar is comparable to the one above it; annotations give the paired change against the preceding stage. The last three stages share one encoder and differ only in how the decision is read out of it. The single largest and only clearly significant step is the read-out. Source: \texttt{scripts/component\_isolation.py}, \texttt{scripts/make\_fig\_isolation.py}.}\label{fig:isolation}
 \end{figure}
 
 \subsection{Age bands and the neonatal read-out}\label{sec:age}
@@ -719,7 +722,7 @@ band edge is not responsible either: only one of the $37$ fast cases has its tru
 discrimination---tachypnea AUROC $0.853$ for the calibrated head against $0.828$ for the spectral-peak
 margin, and $0.746$ against $0.718$ within $<$2mo. What fails is thresholding a regressed rate that has
 been shrunk toward the training mean, where rates $\ge\!60$ are only $11\%$ of subjects: the model's
-bias at true RR $\ge\!60$ is $-15.3$~breaths/min against the spectrum's $-3.7$, so the prediction
+bias at true RR $\ge\!60$ is $-16.9$~breaths/min against the spectrum's $-3.7$, so the prediction
 seldom crosses the WHO cutoff. Neonatal probabilities are compressed to match---the cut point selected
 on calibration is $0.105{\pm}0.048$ for $<$2mo against $0.386{\pm}0.025$ for $2$--$12$mo---so no single
 global threshold can serve both bands.
@@ -832,23 +835,24 @@ EfficientPhys $+0.076$, $p=0.036$; DeepPhys $+0.070$, $p=0.059$), \emph{while ha
 of the five} ($7.11$ against $5.57$--$6.16$). This is the cleanest statement of the paper's claim: the
 same ordering survives when the one procedural advantage our model had is given to every baseline.
 
-\begin{table}[!t]
+\begin{table*}[!t]
 \caption{Selection rule $\times$ model family ($n{=}298$ matched, corrected labels). Published
 extractor runs are last-epoch: their drivers never load a selected checkpoint. $p$ is a paired DeLong
 test against the same model's other selection rule.
-Source: \texttt{scripts/selection\_matrix.py}.}
+No AUROC change among the extractors is significant ($p=0.59$--$0.93$); ours is $+0.023$ ($p=0.22$) bought at $+0.68$ breaths/min of RR-MAE ($p=10^{-4}$). $^{*}$``Before'' is validation-MAE selection for our model and the \emph{last epoch} for the extractors, which is what their published drivers evaluate. Source: \texttt{scripts/selection\_matrix.py}.}
 \label{tab:selmatrix}\centering\small
-\begin{tabular}{@{}lcccc@{}}\toprule
-Model & last-epoch & val-AUROC sel.\ & $\Delta$AUROC & MAE: last $\to$ sel.\\\midrule
-EfficientPhys & 0.755 & 0.772 & $+0.017$ ($p{=}0.59$) & $6.10 \to 5.87$\\
-TS-CAN        & 0.726 & 0.716 & $-0.010$ ($p{=}0.72$) & $6.15 \to 5.74$\\
-VIRENet       & 0.760 & 0.755 & $-0.005$ ($p{=}0.79$) & $5.91 \to 5.50$\\
-DeepPhys      & 0.777 & 0.778 & $+0.001$ ($p{=}0.93$) & $5.62 \to 5.35$\\\midrule
-PRISM-Breath  & 0.827\rlap{$^{*}$} & \textbf{0.850} & $+0.023$ ($p{=}0.22$) & $6.22 \to 6.90$\\
+\begin{tabular}{@{}lccccl@{}}\toprule
+ & \multicolumn{2}{c}{Tachypnea AUROC} & \multicolumn{2}{c}{RR-MAE} & \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+Model & before & after & before & after & Effect of decision-aware selection\\\midrule
+EfficientPhys & 0.755 & 0.772 & 6.10 & 5.87 & both improve\\
+TS-CAN        & 0.726 & 0.716 & 6.15 & 5.74 & both improve\\
+VIRENet       & 0.760 & 0.755 & 5.91 & 5.50 & both improve\\
+DeepPhys      & 0.777 & 0.778 & 5.62 & 5.35 & both improve\\\midrule
+\textbf{Our baseline}\rlap{$^{*}$} & 0.827 & \textbf{0.850} & \textbf{6.22} & 6.90 & \textbf{they trade off}\\
 \bottomrule
-\multicolumn{5}{@{}l}{\footnotesize $^{*}$val-MAE selected, not last-epoch.}
 \end{tabular}
-\end{table}
+\end{table*}
 
 \subsection{An external replication that fails, and what it localises}\label{sec:extval}
 The framing claim and the neonatal recovery are established on a single video cohort. We attempted an

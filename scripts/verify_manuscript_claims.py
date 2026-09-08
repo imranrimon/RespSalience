@@ -183,6 +183,13 @@ def main() -> int:
         maes_n = [(scored(r, age_map).pred_rr_bpm - scored(r, age_map).gt_rr_bpm).abs().mean() for r in NOSSL]
         ck.add("ablation no-SSL MAE", 5.48, float(np.mean(maes_n)), tol=0.02)
 
+    # ---------------- shrinkage of the regressed rate at high true rates ----------------
+    # The paper states this for the full cohort; on the 298-subject head-to-head subset it is -17.4.
+    if P is not None:
+        hi = P.gt_rr_bpm >= 60
+        ck.add("regression bias at RR>=60 (n=332)", -16.9,
+               float((P.pred_rr_bpm - P.gt_rr_bpm)[hi].mean()), tol=0.15)
+
     # ---------------- tab:selmatrix -- selection rule x model family ----------------
     SEL = [("EfficientPhys", "pedrr_kfold_efficientphys_aurocsel", 0.772),
            ("TS-CAN", "pedrr_kfold_tscan_aurocsel", 0.716),
