@@ -31,7 +31,11 @@ from verify_main_run import load, scored  # noqa: E402
 from compare_clinical_models import delong_test  # noqa: E402
 
 MS = ROOT / "manuscript" / "prism_breath.tex"
-SALIENCE = [f"pedrr_kfold_salience_ssl332_seed{i}" for i in range(3)]  # overridable: --salience-suffix
+# The published model. Self-supervised pretraining was tested and dropped: over six matched
+# seeds it changed AUROC by -0.0008 (p=0.95) and MAE by -0.12 bpm (p=0.70), so it is not part
+# of the model. Deterministic runs; see set_seed() in train_resp_salience_ssl.py.
+SALIENCE = [f"pedrr_kfold_salience_nossl332det_seed{i}" for i in range(6)]
+SSL_VARIANT = [f"pedrr_kfold_salience_ssl332det_seed{i}" for i in range(6)]
 PRISM = "pedrr_kfold_main332"
 
 
@@ -109,18 +113,18 @@ def main() -> int:
         s = S[S.sid.isin(sid)].sort_values("sid").reset_index(drop=True)
         y = p.y.to_numpy(int)
         ck.add("tab:headline PRISM overall", 0.827, roc_auc_score(y, p.tachy_prob))
-        ck.add("tab:headline Salience overall", 0.936, roc_auc_score(y, s.tachy_prob))
-        for b, cl_p, cl_s in (("<2mo", 0.650, 0.957), ("2-12mo", 0.864, 0.958), ("12-60mo", 0.915, 0.962)):
+        ck.add("tab:headline Salience overall", 0.927, roc_auc_score(y, s.tachy_prob))
+        for b, cl_p, cl_s in (("<2mo", 0.650, 0.939), ("2-12mo", 0.864, 0.942), ("12-60mo", 0.915, 0.975)):
             m = (p.band == b).to_numpy()
             ck.add(f"tab:headline PRISM {b}", cl_p, roc_auc_score(y[m], p.tachy_prob.to_numpy()[m]))
             ck.add(f"tab:headline Salience {b}", cl_s, roc_auc_score(y[m], s.tachy_prob.to_numpy()[m]))
         ck.add("tab:headline PRISM MAE", 6.22, (p.pred_rr_bpm - p.gt_rr_bpm).abs().mean(), tol=0.02)
         # per-seed MAE mean, as the text reports it
         maes = [ (scored(r, age_map).pred_rr_bpm - scored(r, age_map).gt_rr_bpm).abs().mean() for r in SALIENCE ]
-        ck.add("tab:headline Salience MAE", 5.60, float(np.mean(maes)), tol=0.02)
+        ck.add("tab:headline Salience MAE", 5.50, float(np.mean(maes)), tol=0.02)
         aus = [roc_auc_score(scored(r, age_map).y, scored(r, age_map).tachy_prob) for r in SALIENCE]
-        ck.add("Salience per-seed mean AUROC", 0.907, float(np.mean(aus)), tol=0.002)
-        ck.add("Salience per-seed SD", 0.036, float(np.std(aus, ddof=1)), tol=0.002)
+        ck.add("Salience per-seed mean AUROC", 0.904, float(np.mean(aus)), tol=0.002)
+        ck.add("Salience per-seed SD", 0.023, float(np.std(aus, ddof=1)), tol=0.002)
         dec_p = (p.pred_rr_bpm >= p.thr).astype(int)
         ck.add("tab:headline PRISM Sens", 0.55,
                ((dec_p == 1) & (p.y == 1)).sum() / max(1, (p.y == 1).sum()), tol=0.01)
@@ -165,8 +169,8 @@ def main() -> int:
     if S is not None and COMMON is not None:
         sg = S[S.sid.isin(COMMON)].sort_values("sid").reset_index(drop=True)
         yy = sg.y.to_numpy(int)
-        ck.add("tab:main RespSalience AUROC", 0.935, roc_auc_score(yy, sg.tachy_prob))
-        ck.add("tab:main RespSalience MAE", 5.21,
+        ck.add("tab:main RespSalience AUROC", 0.925, roc_auc_score(yy, sg.tachy_prob))
+        ck.add("tab:main RespSalience MAE", 5.13,
                (sg.pred_rr_bpm - sg.gt_rr_bpm).abs().mean(), tol=0.02)
         for nm, tg, cl_mae in (("DeepPhys", "pedrr_kfold_deepphys_100ep", 5.62),
                                ("VIRENet", "pedrr_kfold_virenet", 5.91),
@@ -181,16 +185,16 @@ def main() -> int:
                    (g2.pred_rr_bpm - g2.gt_rr_bpm).abs().mean(), tol=0.02)
 
     # ---------------- ablation of the recommended model (SSL on/off) ----------------
-    NOSSL = [f"pedrr_kfold_salience_nossl332{a.salience_suffix}_seed{i}" for i in range(3)]
+    NOSSL = SSL_VARIANT   # the rejected addition, reported as a null result
     N = ensemble(NOSSL, age_map)
     if S is not None and N is not None:
         sid2 = sorted(set(S.sid) & set(N.sid))
         s2 = S[S.sid.isin(sid2)].sort_values("sid"); n2 = N[N.sid.isin(sid2)].sort_values("sid")
-        ck.add("ablation no-SSL ensemble", 0.918, roc_auc_score(s2.y, n2.tachy_prob))
+        ck.add("SSL variant ensemble (rejected)", 0.936, roc_auc_score(s2.y, n2.tachy_prob))
         aus_n = [roc_auc_score(scored(r, age_map).y, scored(r, age_map).tachy_prob) for r in NOSSL]
-        ck.add("ablation no-SSL per-seed mean", 0.898, float(np.mean(aus_n)), tol=0.002)
+        ck.add("SSL variant per-seed mean (rejected)", 0.903, float(np.mean(aus_n)), tol=0.002)
         maes_n = [(scored(r, age_map).pred_rr_bpm - scored(r, age_map).gt_rr_bpm).abs().mean() for r in NOSSL]
-        ck.add("ablation no-SSL MAE", 5.48, float(np.mean(maes_n)), tol=0.02)
+        ck.add("SSL variant MAE (rejected)", 5.62, float(np.mean(maes_n)), tol=0.02)
 
     # ---------------- shrinkage of the regressed rate at high true rates ----------------
     # The paper states this for the full cohort; on the 298-subject head-to-head subset it is -17.4.
@@ -387,13 +391,13 @@ def main() -> int:
 
         _sal["c"], _ = _dt.triage_conformal(_sal)
         b_a2, cl_a2, neo_a2 = burden_row(_sal, "c")
-        ck.add("tab:disttriage Salience conformal burden", 59.9, b_a2, tol=0.1)
-        ck.add("tab:disttriage Salience conformal cleared", 3, cl_a2, tol=0.5)
+        ck.add("tab:disttriage Salience conformal burden", 53.3, b_a2, tol=0.1)
+        ck.add("tab:disttriage Salience conformal cleared", 9, cl_a2, tol=0.5)
 
         _sal["d"], _, _ = _dt.triage_distributional(_sal, 0.02, 0.50)
         b_b, cl_b, neo_b = burden_row(_sal, "d")
-        ck.add("tab:disttriage distributional burden", 41.9, b_b, tol=0.1)
-        ck.add("tab:disttriage distributional cleared", 2, cl_b, tol=0.5)
+        ck.add("tab:disttriage distributional burden", 44.3, b_b, tol=0.1)
+        ck.add("tab:disttriage distributional cleared", 1, cl_b, tol=0.5)
         ck.add("tab:disttriage distributional neonates", 0, neo_b, tol=0.5)
 
         # Paired burden test quoted in the text.
@@ -401,39 +405,50 @@ def main() -> int:
         ba = (_pri.set_index("subject_id").loc[cm, "c"].to_numpy() != 0).astype(int)
         bb = (_sal.set_index("subject_id").loc[cm, "d"].to_numpy() != 0).astype(int)
         n10 = int(((ba == 1) & (bb == 0)).sum()); n01 = int(((ba == 0) & (bb == 1)).sum())
-        ck.add("sec:disttriage burden discordant a-only", 63, n10, tol=0.5)
-        ck.add("sec:disttriage burden discordant b-only", 28, n01, tol=0.5)
-        ck.add("sec:disttriage burden McNemar p", 3.1e-4,
-               float(_st.binomtest(n10, n10 + n01, 0.5).pvalue), tol=5e-5)
-        ck.add("sec:disttriage burden reduction", 0.106, float(ba.mean() - bb.mean()), tol=0.002)
+        ck.add("sec:disttriage burden discordant a-only", 58, n10, tol=0.5)
+        ck.add("sec:disttriage burden discordant b-only", 31, n01, tol=0.5)
+        ck.add("sec:disttriage burden McNemar p", 0.006,
+               float(_st.binomtest(n10, n10 + n01, 0.5).pvalue), tol=0.0015)
+        ck.add("sec:disttriage burden reduction", 0.081, float(ba.mean() - bb.mean()), tol=0.002)
 
         # Safety comparison is quoted as NON-significant; verify it stays that way.
         y = _pri.set_index("subject_id").loc[cm, "gt_tachy"].to_numpy(int)
         fa = ((_pri.set_index("subject_id").loc[cm, "c"].to_numpy() == 0) & (y == 1)).astype(int)
         fb = ((_sal.set_index("subject_id").loc[cm, "d"].to_numpy() == 0) & (y == 1)).astype(int)
         m10 = int(((fa == 1) & (fb == 0)).sum()); m01 = int(((fa == 0) & (fb == 1)).sum())
-        ck.add("sec:disttriage safety McNemar p (n.s.)", 0.065,
+        ck.add("sec:disttriage safety McNemar p", 0.021,
                float(_st.binomtest(m10, m10 + m01, 0.5).pvalue), tol=0.002)
 
         # Out-of-sample calibration of the safety budget.
-        for d_, claimed in ((0.02, 0.028), (0.05, 0.044), (0.10, 0.090)):
+        for d_, claimed in ((0.05, 0.051), (0.10, 0.063)):
             s2 = _sal.copy()
             s2["t"], _, _ = _dt.triage_distributional(s2, d_, 0.30)
             cl = s2[s2.t == 0]
             ck.add(f"sec:disttriage realized FCR @delta={d_}", claimed,
                    float(cl.gt_tachy.mean()) if len(cl) else np.nan, tol=0.002)
 
-        # Per-seed spread, quoted verbatim as the reason the safety claim is withheld.
-        per_cl, per_b = [], []
-        for r in _dt.SALIENCE:
-            s3 = _dt.load_run(r)
-            s3 = s3[s3.subject_id.isin(cm)].reset_index(drop=True)
-            s3["t"], _, _ = _dt.triage_distributional(s3, 0.02, 0.50)
-            bb_, cc_, _ = burden_row(s3, "t")
-            per_b.append(bb_); per_cl.append(cc_)
-        for i, (cb, cc) in enumerate(zip((53.3, 45.8, 45.5), (9, 4, 2))):
-            ck.add(f"sec:disttriage seed{i} burden", cb, per_b[i], tol=0.1)
-            ck.add(f"sec:disttriage seed{i} cleared", cc, per_cl[i], tol=0.5)
+        # Replication across two independent three-seed ensembles: the paper quotes these to say
+        # plainly that a three-seed ensemble cannot establish either effect on its own.
+        def _split(seeds):
+            runs = [f"pedrr_kfold_salience_nossl332det_seed{i}" for i in seeds]
+            sub = _dt.ensemble(runs)
+            cc = sorted(set(sub.subject_id) & set(_pri.subject_id))
+            sx = sub[sub.subject_id.isin(cc)].reset_index(drop=True)
+            sx["t"], _, _ = _dt.triage_distributional(sx, 0.02, 0.50)
+            aa = _pri.set_index("subject_id").loc[cc]; bb2 = sx.set_index("subject_id").loc[cc]
+            yy = aa.gt_tachy.to_numpy(int)
+            f_a = ((aa.c.to_numpy() == 0) & (yy == 1)).astype(int)
+            f_b = ((bb2.t.to_numpy() == 0) & (yy == 1)).astype(int)
+            u_a = (aa.c.to_numpy() != 0).astype(int); u_b = (bb2.t.to_numpy() != 0).astype(int)
+            def mc(x, z):
+                a1 = int(((x == 1) & (z == 0)).sum()); a0 = int(((x == 0) & (z == 1)).sum())
+                return float(_st.binomtest(a1, a1 + a0, 0.5).pvalue) if (a1 + a0) else 1.0
+            return mc(u_a, u_b), mc(f_a, f_b)
+
+        for seeds, lab, cb, cs in (([0, 1, 2], "A", 0.142, 0.109), ([3, 4, 5], "B", 0.013, 0.070)):
+            pb_, ps_ = _split(seeds)
+            ck.add(f"sec:disttriage split {lab} burden p", cb, pb_, tol=0.002)
+            ck.add(f"sec:disttriage split {lab} safety p", cs, ps_, tol=0.002)
 
     bad = ck.report()
     if bad:

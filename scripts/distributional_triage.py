@@ -50,7 +50,8 @@ from sklearn.metrics import roc_auc_score
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BANDS = ["<2mo", "2-12mo", "12-60mo"]
-SALIENCE = [f"pedrr_kfold_salience_ssl332_seed{i}" for i in range(3)]
+# The published model: SSL-free, deterministic, six seeds. See train_resp_salience_ssl.py.
+SALIENCE = [f"pedrr_kfold_salience_nossl332det_seed{i}" for i in range(6)]
 PRISM = "pedrr_kfold_main332"
 ALPHA = 0.20
 

@@ -50,10 +50,10 @@ encoder lifts this to $0.87$ ($p<10^{-4}$), and the deep fusion head adds nothin
 regression on the encoder outputs matches it). Going further, reframing the task as direct \emph{classification of the
 signal} (in its strongest form, a learned distribution over rates) rather than rate regression is the largest single gain: on one \emph{fixed} representation it lifts AUROC
 from $0.833$ to $0.880$ (DeLong $p=0.026$), and realized as a calibrated salience network it reaches
-$0.88$--$0.90$ across three seeds (self-supervised pretraining giving the significant edge). Carried to
-its conclusion, a pre-specified distributional read-out---no fusion, no depth or audio, no auxiliary
-components---dominates the regression baseline in every age band (pooled AUROC $0.907\pm0.036$ over
-seeds, $0.936$ ensembled, vs.\ $0.827$, $p=1.3{\times}10^{-5}$; RR-MAE $5.60$ vs.\ $6.22$), with the gain
+$0.90$ on average across six seeds. Carried to
+its conclusion, a pre-specified distributional read-out---no fusion, no depth or audio, no pretraining, no
+auxiliary components---dominates the regression baseline in every age band (pooled AUROC $0.904\pm0.023$ over
+seeds, $0.927$ ensembled, vs.\ $0.827$, $p=1.3{\times}10^{-5}$; RR-MAE $5.50$ vs.\ $6.22$), with the gain
 monotone in difficulty and largest below two months ($0.957$ vs.\ $0.650$). The same reframing applies at
 model selection: choosing checkpoints by validation regression error rather than by the endpoint costs
 discrimination, and we show that a regress-then-threshold pipeline \emph{cannot} dissociate the two,
@@ -266,8 +266,10 @@ $0.5$~breaths/min spacing), trained with a Gaussian target centred at the true r
 the salience-weighted expectation; the tachypnea probability is the salience mass above the age threshold,
 $\hat p = \sum_{r \ge \tau_{\text{age}}} s(r) / \sum_r s(r)$, an empirically well-calibrated probability
 (ECE $0.053$; Sec.~\ref{sec:calib}) without post-hoc adjustment. Because the target is a distribution over rates rather than a regressed scalar, the
-formulation removes the scalar-regression saturation across the tested $6$--$90$~breaths/min grid; it optionally adds a learnable band-pass front-end~\cite{sincnet}
-and self-supervised (masked-signal) pretraining. This is the model we recommend for deployment.
+formulation removes the scalar-regression saturation across the tested $6$--$90$~breaths/min grid; it optionally adds a learnable band-pass front-end~\cite{sincnet}.
+The model has \emph{no} pretraining stage: we tested self-supervised (masked-signal) pretraining and
+removed it after a matched six-seed comparison found no effect on either metric
+(Sec.~\ref{sec:framing}). This is the model we recommend for deployment.
 
 \begin{figure*}[!t]\centering
 \includegraphics[width=6.9in]{fig6_architecture.pdf}
@@ -382,12 +384,12 @@ Source: \texttt{scripts/train\_resp\_salience\_ssl.py}.}
 \label{tab:headline}\centering\small
 \begin{tabular}{@{}lccccc@{}}\toprule
 Band & $n$ & pos & PRISM-Breath & RespSalience & $\Delta$ [95\% CI], $p$\\\midrule
-Overall  & 332 & 84 & 0.827 & \textbf{0.936} & $+0.109\,[{+}0.061,{+}0.159]$, $1.3{\times}10^{-5}$\\
-$<$2mo   & 38  & 10 & 0.650 & \textbf{0.957} & $+0.307\,[{+}0.080,{+}0.552]$, $0.0099$\\
-2--12mo  & 134 & 45 & 0.864 & \textbf{0.958} & $+0.094\,[{+}0.035,{+}0.159]$, $0.0034$\\
-12--60mo & 160 & 29 & 0.915 & \textbf{0.962} & $+0.047\,[{+}0.005,{+}0.094]$, $0.035$\\\midrule
-\multicolumn{2}{@{}l}{RR-MAE (breaths/min)} & & 6.22 & \textbf{5.60} & lower is better\\
-\multicolumn{2}{@{}l}{Sensitivity @ WHO} & & 0.55 & \textbf{0.70} & \\
+Overall  & 332 & 84 & 0.827 & \textbf{0.927} & $+0.100\,[{+}0.056,{+}0.146]$, $1.3{\times}10^{-5}$\\
+$<$2mo   & 38  & 10 & 0.650 & \textbf{0.939} & $+0.289\,[{+}0.075,{+}0.529]$, $0.012$\\
+2--12mo  & 134 & 45 & 0.864 & \textbf{0.942} & $+0.078\,[{+}0.024,{+}0.138]$, $0.0066$\\
+12--60mo & 160 & 29 & 0.915 & \textbf{0.975} & $+0.059\,[{+}0.022,{+}0.102]$, $0.0037$\\\midrule
+\multicolumn{2}{@{}l}{RR-MAE (breaths/min)} & & 6.22 & \textbf{5.00} & lower is better\\
+\multicolumn{2}{@{}l}{Sensitivity @ WHO} & & 0.55 & \textbf{0.62} & \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -412,27 +414,36 @@ columns. Source: \texttt{scripts/verify\_manuscript\_claims.py}.}
 \label{tab:main}\centering\small
 \begin{tabular}{@{}lcccccc@{}}\toprule
 Method & Type & RR-MAE $\downarrow$ & AUROC $\uparrow$ & $\Delta$AUROC & DeLong $p$ & McNemar $p$\\\midrule
-\textbf{RespSalience (ours)} & distributional & \textbf{5.21} & \textbf{0.935} & --- & --- & ---\\\midrule
-PRISM-Breath (ours, baseline) & regression & 6.42 & 0.826 & $+0.109$ & $3.2{\times}10^{-5}$ & 0.152\\
-DeepPhys~\cite{mcduff_deepphys}      & regression & 5.62 & 0.777 & $+0.158$ & $1.9{\times}10^{-5}$ & 0.296\\
-VIRENet~\cite{infant_air}     & regression & 5.91 & 0.760 & $+0.174$ & $4.2{\times}10^{-6}$ & 0.597\\
-EfficientPhys~\cite{liu_efficientphys} & regression & 6.10 & 0.755 & $+0.180$ & $2.2{\times}10^{-6}$ & 1.000\\
-PhysFormer~\cite{yu_physformer}    & regression & 6.65 & 0.734 & $+0.200$ & $4.5{\times}10^{-10}$ & 0.117\\
-TS-CAN~\cite{liu_mttscan}           & regression & 6.15 & 0.726 & $+0.208$ & $1.8{\times}10^{-7}$ & 0.851\\
+\textbf{RespSalience (ours)} & distributional & \textbf{5.13} & \textbf{0.925} & --- & --- & ---\\\midrule
+PRISM-Breath (ours, baseline) & regression & 6.42 & 0.826 & $+0.099$ & $3.6{\times}10^{-5}$ & 0.324\\
+DeepPhys~\cite{mcduff_deepphys}      & regression & 5.62 & 0.777 & $+0.148$ & $2.6{\times}10^{-5}$ & 0.099\\
+VIRENet~\cite{infant_air}     & regression & 5.91 & 0.760 & $+0.165$ & $7.7{\times}10^{-6}$ & 0.243\\
+EfficientPhys~\cite{liu_efficientphys} & regression & 6.10 & 0.755 & $+0.171$ & $4.1{\times}10^{-6}$ & 0.743\\
+PhysFormer~\cite{yu_physformer}    & regression & 6.65 & 0.734 & $+0.191$ & $9.0{\times}10^{-10}$ & 0.281\\
+TS-CAN~\cite{liu_mttscan}           & regression & 6.15 & 0.726 & $+0.199$ & $3.4{\times}10^{-7}$ & 0.864\\
 \bottomrule
 \end{tabular}
 \end{table*}
 
-\emph{What in the recommended model is load-bearing?} Because the model has almost no components, the
-ablation is short. Removing self-supervised pretraining and retraining the same architecture over three
-seeds costs $0.018$ AUROC (ensemble $0.936 \to 0.918$; paired DeLong $p=0.044$, bootstrap $95\%$~CI
-$[{+}0.001,{+}0.036]$) and slightly \emph{improves} RR-MAE ($5.60 \to 5.48$), the familiar trade
-reappearing at yet another level. The more important number is what survives: without pretraining the
-model still reaches $0.918$, against $0.827$ for the multimodal regression baseline and
-$0.726$--$0.777$ for the published extractors. \textbf{The gain is carried by the read-out, not by the
-pretraining}---which is the same conclusion the component isolation reached for the baseline
-(Sec.~\ref{sec:simple}), and the reason we present the distributional decision rule rather than a
-training recipe as this paper's contribution.
+\emph{What in the recommended model is load-bearing?} Almost nothing beyond the read-out, and we report
+one component we tested and discarded on that basis. We had added self-supervised pretraining (masked-span
+reconstruction on unlabeled respiration signals) to the salience encoder, and an early single-run ablation
+appeared to support it ($\Delta$AUROC $0.018$, paired DeLong $p=0.044$). It does not survive proper
+testing. Training on GPU is not reproducible under seeding alone (see Reproducibility), and once we pinned
+the non-deterministic kernels we could run the ablation as a matched design: over six seeds per arm,
+pretraining changes AUROC by $-0.0008$ (paired $t$ $p=0.95$; Wilcoxon $p=1.00$; per-seed differences
+$-0.041$ to $+0.034$, sign-flipping) and RR-MAE by $-0.12$~breaths/min in the \emph{wrong} direction
+($p=0.70$). Two independent three-seed ensembles likewise show no effect ($+0.011$, $p=0.16$; $+0.008$,
+$p=0.37$). The original $p=0.044$ was a single draw at the edge of significance, on an effect smaller than
+the run-to-run spread we later measured; we report it here because the same arithmetic invalidates any
+single-run ablation on a cohort this size. \textbf{We therefore removed pretraining from the model
+entirely}: the model reported throughout this paper has no pretraining stage, and the numbers above are
+its numbers---not an ablated variant of a larger system.
+
+This is the third time in this study that machinery has proved inert once the read-out was fixed---after
+the fusion architecture (Sec.~\ref{sec:abl}) and the auxiliary components of the regression baseline
+(Sec.~\ref{sec:simple}). \textbf{The gain is carried by the read-out}, which is why we present a
+distributional decision rule rather than a training recipe as this paper's contribution.
 
 Applying the age-conditional read-out of Sec.~\ref{sec:age} on top of this model raises neonatal
 sensitivity from $0.30$ to $0.80$ (specificity $1.000\rightarrow0.869$) and overall sensitivity from
@@ -817,23 +828,28 @@ alert when $p>t_\text{hi}$, refer otherwise, with $(t_\text{lo},t_\text{hi})$ ch
 as the widest clearing and alerting regions whose empirical error respects a safety budget ($\delta$, the
 tolerated tachypnea rate among cleared cases; $\gamma$, the tolerated false-alarm rate among alerts).
 The budget is honoured out of sample: realized clearance error tracks $\delta$ closely
-($0.028$ at $\delta{=}0.02$, $0.044$ at $0.05$, $0.090$ at $0.10$).
+($0.051$ at $\delta{=}0.05$, $0.063$ at $0.10$).
 
 The fair cost is not the referral rate but the total downstream burden, since an ALERT also sends a
 child onward; the fair safety measure is the number of tachypneic children auto-cleared as normal, and
 we credit the conformal arm with a \emph{perfect} escalation modality. On both, the distributional
-triage is better (Table~\ref{tab:disttriage}): burden falls from $52.4\%$ to $41.9\%$, a paired
-reduction of $0.106$ $[0.051,0.163]$ (exact McNemar $p=3.1\times10^{-4}$, $63$ vs $28$ discordant).
-The middle row isolates the cause: keeping the distributional model but triaging on \emph{its} regressed
-rate gives the worst burden of the three, so the saving comes from the read-out, not from the model.
+triage is better (Table~\ref{tab:disttriage}): burden falls from $52.4\%$ to $44.3\%$, a paired
+reduction of $0.081$ (exact McNemar $p=0.006$, $58$ vs $31$ discordant), while the number of
+tachypneic children auto-cleared falls from nine to one ($p=0.021$) and no tachypneic neonate is
+cleared at all. The middle row isolates the cause: keeping the distributional model but triaging on
+\emph{its own} regressed rate gives no improvement over the incumbent, so the saving comes from the
+read-out and not from the better model.
 
-We are deliberately careful about the safety column. The drop from nine auto-cleared tachypneic
-children to two is a favourable trend, not a result: exact McNemar gives $p=0.065$, and it is
-seed-sensitive---the three seeds individually clear $9/4/2$ at burdens of $53.3/45.8/45.5\%$, so the
-dominance is an ensemble effect and the weakest seed is no better than the incumbent. We therefore claim
-only the burden reduction, and we retain mandatory neonatal referral rather than resting a
-safety-critical policy on an underpowered comparison. That a coherent read-out removes most of the
-referral cost, however, is the practical form of this paper's thesis: the decision rule, not the
+Both effects are reported at the model as defined---the six-seed ensemble---and we state their
+stability rather than only their $p$-values, because a borderline result on this cohort has already
+misled us once (the pretraining ablation above). Splitting the six seeds into two independent
+three-seed ensembles, the burden reduction reaches significance in one half but not the other
+($p=0.013$; $p=0.14$), and the safety improvement in neither ($p=0.07$; $p=0.11$). The direction is
+consistent in every split, but a three-seed ensemble does not have the power to establish either
+effect. We therefore treat the burden reduction as the supported claim, treat the safety improvement
+as encouraging but not established, and retain mandatory neonatal referral rather than rest a
+safety-critical policy on an underpowered comparison. That a coherent read-out removes much of the
+referral cost is nonetheless the practical form of this paper's thesis: the decision rule, not the
 uncertainty layer bolted on top of it, is what makes a screen deployable.
 
 \begin{table}[!t]
@@ -845,8 +861,8 @@ arms with a perfect escalation modality. Only the burden difference is statistic
 \begin{tabular}{@{}lccc@{}}\toprule
 Triage read-out & Burden & Cleared & Neonates\\\midrule
 PRISM-Breath rate $\pm$ conformal & $52.4\%$ & 9 & 3\\
-RespSalience rate $\pm$ conformal & $59.9\%$ & 3 & 3\\
-RespSalience salience mass & $\mathbf{41.9\%}$ & 2 & 0\\\bottomrule
+RespSalience rate $\pm$ conformal & $53.3\%$ & 9 & 3\\
+RespSalience salience mass & $\mathbf{44.3\%}$ & \textbf{1} & \textbf{0}\\\bottomrule
 \end{tabular}
 \end{table}
 
@@ -973,8 +989,9 @@ as a whole and the classification objective, not to any single block. A flow-onl
 configuration (depth and audio disabled) still beats EfficientPhys on AUROC ($0.860$, $p=0.002$),
 localizing the win to the head rather than the extra modalities. The screen is also robust to
 training-set size: on nested subject subsamples, tachypnea AUROC saturates by $50$--$75\%$ of the training
-subjects and self-supervised pretraining chiefly improves RR-MAE (supplementary material), so the model is
-not starved for data at this cohort size.
+subjects (supplementary material), so the model is not starved for data at this cohort size. An earlier
+version of this analysis attributed a residual RR-MAE benefit to self-supervised pretraining; the matched
+six-seed test in Sec.~\ref{sec:framing} does not support that, and we withdraw it.
 
 \subsection{Extractor robustness and a retracted result}
 The clinical result is robust to the flow backbone: a TS-CAN-derived flow gives AUROC $0.897$ under a
