@@ -31,7 +31,7 @@ from verify_main_run import load, scored  # noqa: E402
 from compare_clinical_models import delong_test  # noqa: E402
 
 MS = ROOT / "manuscript" / "prism_breath.tex"
-SALIENCE = [f"pedrr_kfold_salience_ssl332_seed{i}" for i in range(3)]
+SALIENCE = [f"pedrr_kfold_salience_ssl332_seed{i}" for i in range(3)]  # overridable: --salience-suffix
 PRISM = "pedrr_kfold_main332"
 
 
@@ -83,8 +83,17 @@ class Check:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--tol", type=float, default=0.0015)
+    ap.add_argument("--salience-suffix", default="",
+                    help="evaluate the manuscript's claims against an alternative RespSalience run "
+                         "family, e.g. --salience-suffix det. Used to see exactly which reported "
+                         "numbers move when the training runs change; with no suffix this checks "
+                         "the runs the manuscript actually reports.")
     a = ap.parse_args()
     ck = Check(a.tol)
+    global SALIENCE
+    if a.salience_suffix:
+        SALIENCE = [f"pedrr_kfold_salience_ssl332{a.salience_suffix}_seed{i}" for i in range(3)]
+        print(f"[alt runs] RespSalience family -> ...ssl332{a.salience_suffix}_seed*\n")
 
     ref = load("pedrr_kfold_flowonly_agefix")
     if ref is None:
@@ -172,7 +181,7 @@ def main() -> int:
                    (g2.pred_rr_bpm - g2.gt_rr_bpm).abs().mean(), tol=0.02)
 
     # ---------------- ablation of the recommended model (SSL on/off) ----------------
-    NOSSL = [f"pedrr_kfold_salience_nossl332_seed{i}" for i in range(3)]
+    NOSSL = [f"pedrr_kfold_salience_nossl332{a.salience_suffix}_seed{i}" for i in range(3)]
     N = ensemble(NOSSL, age_map)
     if S is not None and N is not None:
         sid2 = sorted(set(S.sid) & set(N.sid))
@@ -355,6 +364,8 @@ def main() -> int:
     finally:
         sys.argv = _argv
 
+    # Keep the triage section on the same run family as everything above.
+    _dt.SALIENCE = list(SALIENCE)
     _sal = _dt.ensemble(_dt.SALIENCE)
     _pri = _dt.load_run(_dt.PRISM)
     if _sal is not None and _pri is not None:
