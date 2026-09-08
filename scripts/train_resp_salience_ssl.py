@@ -49,6 +49,39 @@ def who_thr(a):
     return 60.0 if a < 2 else (50.0 if a < 12 else 40.0)
 
 
+CKPT_FORMAT = 1
+
+
+def save_checkpoint(path, enc, head, args, fold, n_train):
+    """Persist one fold's weights together with everything needed to rebuild the model.
+
+    Weights alone are not a releasable artifact: the salience head is a distribution over the rate
+    grid, so a reader who does not know BINS, the sampling rate, or the window length cannot
+    interpret its output. Those go in the file rather than in a README that can drift from it.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    torch.save({
+        "format_version": CKPT_FORMAT,
+        "model": "RespSalience",
+        "encoder_state_dict": {k: v.cpu() for k, v in enc.state_dict().items()},
+        "head_state_dict": {k: v.cpu() for k, v in head.state_dict().items()},
+        "config": {
+            "bins_bpm": BINS.tolist(),      # rate grid the head scores; tachy_prob is mass above WHO tau
+            "fs_hz": FS,
+            "window_samples": N,
+            "channel": "flow",
+            "bandpass_hz": [0.1, 1.7],
+            "ssl_pretrain": not args.no_ssl,
+            "epochs": args.epochs,
+            "seed": args.seed,
+            "fold": fold,
+            "n_train_signals": int(n_train),
+            "kfold_run": args.kfold,
+            "age_fix": bool(args.age_fix),
+        },
+    }, path)
+
+
 def corrected_ages():
     """subject_id -> age_months from the reference run that carries the age correction."""
     m = {}
@@ -103,6 +136,8 @@ def main():
                     help="run root supplying fold assignment and signal paths; use a 332-subject run "
                          "(e.g. pedrr_kfold_main332) to train on the full cohort")
     ap.add_argument("--no-age-fix", dest="age_fix", action="store_false", default=True)
+    ap.add_argument("--no-save-checkpoints", dest="save_checkpoints", action="store_false",
+                    default=True, help="skip persisting per-fold weights (predictions are always written)")
     args = ap.parse_args()
     global KFOLD
     KFOLD = ROOT / "outputs" / "paper_runs" / args.kfold
@@ -130,7 +165,17 @@ def main():
             pr[te] = (saln*binsT).sum(1).cpu().numpy()
             thr = torch.tensor(D["threshold_bpm"].values[te], device=DEV)
             pb[te] = torch.stack([saln[j, binsT >= thr[j]].sum() for j in range(len(saln))]).cpu().numpy()
-        print(f"  fold{k} done", flush=True)
+        if args.save_checkpoints:
+            ck = (ROOT / "outputs" / "paper_runs"
+                  / f"pedrr_kfold_salience{args.tag}_seed{args.seed}" / f"fold{k}"
+                  / "train" / "resp_salience_best.pt")
+            save_checkpoint(ck, enc, head, args, k, int(tr.sum()))
+            print(f"  fold{k} done -> {ck.relative_to(ROOT)}", flush=True)
+        else:
+            print(f"  fold{k} done", flush=True)
+        del enc, head, Xtr, Ytr, Xte          # this loop previously held five folds' graphs alive
+        if DEV == "cuda":
+            torch.cuda.empty_cache()
     D["pred_rr_bpm"] = pr; D["pred_bpm"] = pr; D["gt_bpm"] = D["gt_rr_bpm"]; D["tachy_prob"] = pb
     for k in range(5):
         out = ROOT / "outputs" / "paper_runs" / f"pedrr_kfold_salience{args.tag}_seed{args.seed}" / f"fold{k}" / "test_eval"
