@@ -555,17 +555,34 @@ PRISM thus improves tachypnea \emph{discrimination}; converting that ranking adv
 significantly better fixed-threshold decision is limited both by operating-point selection
 (Section~\ref{sec:disc}) and by how well the outcome itself can be measured.
 
-\subsection{Architecture comparisons}
-Evaluated within our framework on all $332$ subjects, PRISM's reliability-weighted fusion
-(AUROC $0.827$) is statistically indistinguishable from both a Mamba-style state-space fusion
-backbone~\cite{mamba_gu} ($0.809$; DeLong $p=0.42$; MAE $7.55$) and a CliffPhys-style backbone
-($0.850$; $p=0.28$; MAE $6.53$). A modern video transformer, PhysFormer~\cite{yu_physformer}, fares
-worse ($0.743$; DeLong $p=0.010$; Table~\ref{tab:sota}). Swapping the sequence backbone thus moves the
-clinical endpoint by less than the noise, while swapping the objective (Section~\ref{sec:objective}) or
-the read-out (Section~\ref{sec:age}) moves it decisively---heavier architectures do not rescue the
-rate-then-threshold paradigm. But as Section~\ref{sec:simple} shows, the advantage is not in the deep
-head at all---it is in the extracted signal and the training recipe, not the sequence encoder or fusion
-depth.
+\subsection{Neither the backbone nor the components are load-bearing}\label{sec:abl}
+Two independent attempts to find the source of performance in the architecture both come up empty, and
+we state them together because they make the same point from opposite directions.
+
+\emph{Swapping the backbone changes nothing.} Evaluated within our framework on all $332$ subjects,
+PRISM's reliability-weighted fusion (AUROC $0.827$) is statistically indistinguishable from a
+Mamba-style state-space backbone~\cite{mamba_gu} ($0.809$; DeLong $p=0.42$) and from a CliffPhys-style
+backbone ($0.850$; $p=0.28$). A modern video transformer, PhysFormer~\cite{yu_physformer}, fares worse
+($0.743$; $p=0.010$; Table~\ref{tab:sota}). Changing the sequence model moves the clinical endpoint by
+less than the noise, while changing the objective (Sec.~\ref{sec:objective}) or the read-out
+(Sec.~\ref{sec:age}) moves it decisively.
+
+\emph{Removing the components changes nothing either.} The ablation of PRISM-Breath---our regression
+\emph{baseline}, not the model we recommend---is the evidence that led us away from the multimodal
+fusion design, and it is the configuration a reader following the current literature would build. Under
+paired comparison with subject-bootstrap CIs, no single component in Table~\ref{tab:abl} is individually
+load-bearing: every removal's $\Delta$AUROC interval includes zero (supplementary material). PRISM-Breath-Lean (prototype
+bank, codebook and heteroscedastic head removed) matches the full model (Fig.~\ref{fig:abl}), and a
+flow-only configuration with depth and audio disabled still beats EfficientPhys ($0.860$, $p=0.002$),
+localizing the advantage to the head rather than the extra modalities. Fixed-threshold sensitivity does
+shift, being operating-point sensitive, but discrimination does not. The screen is likewise robust to
+training-set size: on nested subject subsamples, tachypnea AUROC saturates by $50$--$75\%$ of the
+training subjects (supplementary material), so the model is not starved for data at this cohort size.
+
+Together with the component isolation of Sec.~\ref{sec:simple} and the null pretraining ablation of
+Sec.~\ref{sec:framing}, this is the fourth place in this study where machinery proved inert once the
+read-out was fixed. We take the consistency of that result seriously: it is why this paper offers a
+decision rule rather than an architecture.
 
 \subsection{Where the performance comes from: a component isolation}\label{sec:simple}
 Table~\ref{tab:simple} isolates where the clinical signal appears, with every stage evaluated on the
@@ -831,119 +848,22 @@ three (six rescued to radar). The conformal layer corroborates the mandatory-neo
 rather than replacing it.}\label{fig:escalation}
 \end{figure*}
 
-\subsection{The triage layer should use the same read-out}\label{sec:disttriage}
-The escalation pathway above has an internal inconsistency that we think is worth stating plainly,
-because it is the same mistake this paper argues against one level down. The triage forms a conformal
-interval around the \emph{regressed} rate and refers whenever that interval straddles the cutoff---so
-the layer that decides whom to screen is built on exactly the regress-then-threshold read-out that
-Section~\ref{sec:framing} shows to be the weaker way to reach a decision. It inherits that read-out's
-failure mode: because the regressed rate saturates near $30$ for neonates whose true rate is $60$--$80$,
-the interval must be widened to $\pm19$~breaths/min before it can straddle the cutoff at all, and that
-width then forces referrals across every other band as collateral.
+\emph{A note on the triage layer.} The escalation rule above forms a conformal interval around the
+\emph{regressed} rate and refers whenever it straddles the cutoff---so the layer deciding whom to screen
+is built on exactly the read-out this paper argues against, and inherits its failure mode. Replacing it
+with abstention on the salience mass, at matched leakage discipline on the same cohort, lowers the total
+downstream burden (REFER${+}$ALERT) from $52.4\%$ to $44.3\%$ (exact McNemar $p=0.006$) while the number
+of tachypneic children auto-cleared falls from nine to one. We claim only the burden reduction: split
+into two independent three-seed ensembles the burden effect reaches significance in one half and the
+safety effect in neither, so mandatory neonatal referral stays. The comparison, the per-band table and
+the split analysis are in the supplementary material.
 
-We therefore built the coherent alternative and measured it against the incumbent on the identical
-cohort under the identical leakage discipline. Instead of an interval around a point estimate, the
-triage abstains on the uncertain band of the salience mass: per age band, clear when $p<t_\text{lo}$,
-alert when $p>t_\text{hi}$, refer otherwise, with $(t_\text{lo},t_\text{hi})$ chosen leave-one-fold-out
-as the widest clearing and alerting regions whose empirical error respects a safety budget ($\delta$, the
-tolerated tachypnea rate among cleared cases; $\gamma$, the tolerated false-alarm rate among alerts).
-The budget is honoured out of sample: realized clearance error tracks $\delta$ closely
-($0.051$ at $\delta{=}0.05$, $0.063$ at $0.10$).
-
-The fair cost is not the referral rate but the total downstream burden, since an ALERT also sends a
-child onward; the fair safety measure is the number of tachypneic children auto-cleared as normal, and
-we credit the conformal arm with a \emph{perfect} escalation modality. On both, the distributional
-triage is better (Table~\ref{tab:disttriage}): burden falls from $52.4\%$ to $44.3\%$, a paired
-reduction of $0.081$ (exact McNemar $p=0.006$, $58$ vs $31$ discordant), while the number of
-tachypneic children auto-cleared falls from nine to one ($p=0.021$) and no tachypneic neonate is
-cleared at all. The middle row isolates the cause: keeping the distributional model but triaging on
-\emph{its own} regressed rate gives no improvement over the incumbent, so the saving comes from the
-read-out and not from the better model.
-
-Both effects are reported at the model as defined---the six-seed ensemble---and we state their
-stability rather than only their $p$-values, because a borderline result on this cohort has already
-misled us once (the pretraining ablation above). Splitting the six seeds into two independent
-three-seed ensembles, the burden reduction reaches significance in one half but not the other
-($p=0.013$; $p=0.14$), and the safety improvement in neither ($p=0.07$; $p=0.11$). The direction is
-consistent in every split, but a three-seed ensemble does not have the power to establish either
-effect. We therefore treat the burden reduction as the supported claim, treat the safety improvement
-as encouraging but not established, and retain mandatory neonatal referral rather than rest a
-safety-critical policy on an underpowered comparison. That a coherent read-out removes much of the
-referral cost is nonetheless the practical form of this paper's thesis: the decision rule, not the
-uncertainty layer bolted on top of it, is what makes a screen deployable.
-
-\begin{table}[!t]
-\caption{Triage read-out on the identical cohort ($n{=}332$, leave-one-fold-out throughout). Burden is
-REFER$+$ALERT. ``Cleared'' counts tachypneic children auto-cleared as normal, crediting the conformal
-arms with a perfect escalation modality. Only the burden difference is statistically significant.}
-\label{tab:disttriage}\centering\small
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{@{}lccc@{}}\toprule
-Triage read-out & Burden & Cleared & Neonates\\\midrule
-PRISM-Breath rate $\pm$ conformal & $52.4\%$ & 9 & 3\\
-RespSalience rate $\pm$ conformal & $53.3\%$ & 9 & 3\\
-RespSalience salience mass & $\mathbf{44.3\%}$ & \textbf{1} & \textbf{0}\\\bottomrule
-\end{tabular}
-\end{table}
-
-\subsection{Checkpoint selection is part of the decision rule}\label{sec:selmatrix}
-Section~\ref{sec:objective} showed that the training objective changes which model a fixed
-representation yields. The same is true one level up, at model selection, and auditing it produced a
-result we did not expect.
-
-Our own checkpoints were chosen by a validation criterion dominated by regression error. Re-running the
-identical configuration---same data, folds, architecture, budget and seed---selecting instead on
-validation tachypnea AUROC moves the endpoint by ${+}0.023$ ($0.827\rightarrow0.850$) while
-\emph{worsening} RR-MAE by $0.68$ breaths/min (paired Wilcoxon $p=10^{-4}$), winning $4$ of $5$ folds.
-Only the MAE cost is individually significant at this sample size, but the gain is again monotone in
-difficulty (${+}0.086$ in the $<$2-month band against ${+}0.004$ at $12$--$60$ months).
-
-Fairness then requires the same treatment for the baselines, and auditing that uncovered something
-about the published extractors: they were never checkpoint-selected at all. Their drivers extract
-predictions from whatever weights remain resident when training returns---the final epoch---and the
-checkpoint the trainer flags as best is written but never loaded. We verified this bit-exactly
-(maximum $|\Delta\mathrm{RR}|=0.000$ against the last epoch, versus $9.5$ breaths/min against the
-flagged checkpoint). Because every epoch was checkpointed, the matched arm needs no retraining, only
-inference: we re-select each baseline's epoch on validation AUROC by exactly the procedure applied to
-our own model, giving every model the same number of candidate checkpoints so that search budget is not
-itself a confound.
-
-The outcome (Table~\ref{tab:selmatrix}) is the opposite of a free win, and it explains the paper's
-central dissociation mechanically. Decision-aware selection barely moves the extractors' AUROC
-(${-}0.010$ to ${+}0.017$, all $p\ge0.59$) while consistently \emph{improving} their RR-MAE---all it
-corrects is last-epoch overfitting. It moves our model's two metrics in opposite directions. The reason
-is structural: for a regress-then-threshold pipeline the tachypnea score is a monotone function of the
-predicted rate, so its ranking \emph{is} its rate estimate and there is no separate decision to select
-for. A model with an independent decision pathway has two objectives that can trade.
-\emph{A regress-then-threshold pipeline cannot dissociate regression accuracy from clinical utility,
-because its ranking is its rate.} That is why RR-MAE orders the five extractors almost perfectly
-(Sec.~\ref{sec:sota}) and fails only when compared across a change of objective.
-
-Under a fully matched protocol---every model selected on validation AUROC, scored on the same
-$298$-subject cohort used throughout---PRISM attains $0.848$ against $0.716$--$0.778$, significantly
-better than three of the four (TS-CAN $+0.132$, $p=0.0024$; VIRENet $+0.093$, $p=0.017$;
-EfficientPhys $+0.076$, $p=0.036$; DeepPhys $+0.070$, $p=0.059$), \emph{while having the worst RR-MAE
-of the five} ($7.11$ against $5.57$--$6.16$). This is the cleanest statement of the paper's claim: the
-same ordering survives when the one procedural advantage our model had is given to every baseline.
-
-\begin{table*}[!t]
-\caption{Selection rule $\times$ model family ($n{=}298$ matched, corrected labels). Published
-extractor runs are last-epoch: their drivers never load a selected checkpoint. $p$ is a paired DeLong
-test against the same model's other selection rule.
-No AUROC change among the extractors is significant ($p=0.59$--$0.93$); ours is $+0.023$ ($p=0.22$) bought at $+0.68$ breaths/min of RR-MAE ($p=10^{-4}$). $^{*}$``Before'' is validation-MAE selection for our model and the \emph{last epoch} for the extractors, which is what their published drivers evaluate. Source: \texttt{scripts/selection\_matrix.py}.}
-\label{tab:selmatrix}\centering\small
-\begin{tabular}{@{}lccccl@{}}\toprule
- & \multicolumn{2}{c}{Tachypnea AUROC} & \multicolumn{2}{c}{RR-MAE} & \\
-\cmidrule(lr){2-3}\cmidrule(lr){4-5}
-Model & before & after & before & after & Effect of decision-aware selection\\\midrule
-EfficientPhys & 0.755 & 0.772 & 6.10 & 5.87 & both improve\\
-TS-CAN        & 0.726 & 0.716 & 6.15 & 5.74 & both improve\\
-VIRENet       & 0.760 & 0.755 & 5.91 & 5.50 & both improve\\
-DeepPhys      & 0.777 & 0.778 & 5.62 & 5.35 & both improve\\\midrule
-\textbf{Our baseline}\rlap{$^{*}$} & 0.827 & \textbf{0.850} & \textbf{6.22} & 6.90 & \textbf{they trade off}\\
-\bottomrule
-\end{tabular}
-\end{table*}
+\emph{A note on model selection.} Selecting checkpoints by validation regression error rather than by
+the clinical endpoint measurably changes that endpoint, and the published extractors we compare against
+were never checkpoint-selected at all---their drivers evaluate whatever weights remain resident when
+training returns. We therefore gave every model the same treatment before comparing, and report the full
+selection-rule $\times$ model-family matrix in the supplementary material; it is the reason the
+head-to-head in Table~\ref{tab:main} is a fair one.
 
 \subsection{An external replication that fails, and what it localises}\label{sec:extval}
 The framing claim and the neonatal recovery are established on a single video cohort. We attempted an
@@ -1032,26 +952,6 @@ $1$~Hz, the $60$~breaths/min threshold, i.e.\ at the point where the pass-band s
 breather. The clean belt---the condition of the failed replication---sits at the bottom of this curve.}
 \label{fig:saturation}
 \end{figure*}
-
-\subsection{Why we abandoned the fusion architecture}\label{sec:abl}
-The ablation below dissects PRISM-Breath, our regression \emph{baseline}, not the model we
-recommend---which has almost no components to remove and is ablated in Sec.~\ref{sec:primary}. We
-report it because it is the evidence that led us away from the multimodal fusion design, and because
-it is the configuration a reader following the current literature would build.
-Table~\ref{tab:abl} lists component contributions under the pooled five-fold protocol. Under \emph{paired}
-comparison with subject-bootstrap CIs, however, no single component is individually load-bearing: every
-removal's $\Delta$AUROC confidence interval includes zero (supplementary material), including
-self-supervised pretraining ($\Delta$AUROC $-0.013$, DeLong $p=0.55$) and the spectral features ($p=0.07$).
-Fixed-threshold sensitivity shifts more---it is operating-point sensitive---but discrimination does not.
-This is precisely why PRISM-Breath-Lean (prototype bank, codebook, and heteroscedastic head removed) matches
-the full model (Fig.~\ref{fig:abl}), an Occam-clean design; discrimination localizes instead to the encoder
-as a whole and the classification objective, not to any single block. A flow-only
-configuration (depth and audio disabled) still beats EfficientPhys on AUROC ($0.860$, $p=0.002$),
-localizing the win to the head rather than the extra modalities. The screen is also robust to
-training-set size: on nested subject subsamples, tachypnea AUROC saturates by $50$--$75\%$ of the training
-subjects (supplementary material), so the model is not starved for data at this cohort size. An earlier
-version of this analysis attributed a residual RR-MAE benefit to self-supervised pretraining; the matched
-six-seed test in Sec.~\ref{sec:framing} does not support that, and we withdraw it.
 
 \subsection{Extractor robustness and a retracted result}
 The clinical result is robust to the flow backbone: a TS-CAN-derived flow gives AUROC $0.897$ under a
