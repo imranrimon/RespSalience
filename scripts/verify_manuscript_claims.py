@@ -482,6 +482,33 @@ def main() -> int:
             ck.add("published run == seed ensemble (max |dProb|)", 0.0,
                    float((m.tachy_prob - q.tachy_prob).abs().max()), tol=1e-6)
 
+    # ---------------- saturation dose-response (sec:extval, fig:saturation) ----------------
+    sat = ROOT / "outputs" / "saturation_controlled.csv"
+    if sat.exists():
+        sc = pd.read_csv(sat)
+        ck.add("saturation conditions", 6, len(sc), tol=0.5)
+        # The paper quotes the sweep's START (the unfiltered belt), not the minimum: the 2 Hz
+        # condition dips 0.002 below it, which is within the seed SD and not the claim.
+        ck.add("saturation sigma at clean belt", 0.615,
+               float(sc.loc[sc.lowpass_hz == 0.0, "sigma"].iloc[0]), tol=0.002)
+        ck.add("saturation sigma max", 0.705, float(sc.sigma.max()), tol=0.002)
+        ck.add("saturation gain min", -0.042, float(sc.gain.min()), tol=0.002)
+        ck.add("saturation gain max", 0.024, float(sc.gain.max()), tol=0.002)
+        ck.add("saturation gain swing", 0.066, float(sc.gain.max() - sc.gain.min()), tol=0.002)
+        from scipy import stats as _s2
+        r1, p1 = _s2.spearmanr(sc.sigma, sc.gain)
+        cutv = sc.lowpass_hz.replace(0.0, np.inf)
+        r2, p2 = _s2.spearmanr(_s2.rankdata(-cutv), sc.gain)
+        ck.add("saturation Spearman rho (sigma)", 0.94, float(r1), tol=0.01)
+        ck.add("saturation Spearman p (sigma)", 0.005, float(p1), tol=0.001)
+        ck.add("saturation Spearman rho (dose)", 0.89, float(r2), tol=0.01)
+        ck.add("saturation Spearman p (dose)", 0.019, float(p2), tol=0.001)
+        # The zero crossing is the mechanistic claim: it must sit between 1.1 and 0.9 Hz.
+        neg = sc[sc.gain < 0].lowpass_hz.replace(0.0, np.inf).min()
+        pos = sc[sc.gain > 0].lowpass_hz.max()
+        ck.add("saturation crossing: last negative cutoff", 1.1, float(neg), tol=0.01)
+        ck.add("saturation crossing: first positive cutoff", 0.9, float(pos), tol=0.01)
+
     bad = ck.report()
     if bad:
         print("\nEvery MISMATCH is a number in the manuscript that its own artifacts do not support.")

@@ -985,6 +985,34 @@ distribution cannot help, and our results say exactly that. Adding noise does no
 because generic noise degrades both read-outs symmetrically---it does not induce the asymmetric
 shrinkage that a trained regressor exhibits on a saturating sensor.
 
+\textbf{Testing that account directly.} The preceding paragraph is an explanation of a null, which is
+cheap to assert and easy to fit after the fact. It also makes a falsifiable prediction: if the
+advantage requires a front end that cannot represent fast rates, then \emph{inducing} that condition on
+this same belt should make the advantage appear, and doing so gradually should make it appear
+gradually. We tested this by low-passing the belt signal before training, holding the cohort, the
+encoder, the folds and both read-outs fixed, and sweeping the cutoff from no filtering down to
+$0.7$~Hz---through $1.0$~Hz, which is the $60$~breaths/min threshold itself. Saturation is measured on
+the output, where the mechanism acts: $\sigma = 1 - $ the slope of predicted rate on true rate, so
+$\sigma=0$ is a faithful estimator and $\sigma\to1$ one that ignores the true rate.
+
+The prediction holds (Fig.~\ref{fig:saturation}). As the cutoff falls, $\sigma$ rises from $0.615$ to
+$0.705$ and the framing gain rises monotonically with it, from ${-}0.042$ to ${+}0.024$: Spearman
+$\rho={+}0.94$ against $\sigma$ ($p=0.005$), $\rho={+}0.89$ against the manipulation itself ($p=0.019$),
+and a seed-weighted least-squares slope of ${+}0.78$~AUROC per unit $\sigma$ ($p=0.001$). The gain
+crosses zero between the $1.1$ and $0.9$~Hz cutoffs---that is, at the point where the pass-band stops
+admitting $60$~breaths/min and a fast breather can no longer be represented. The effect can therefore
+be switched on and off at will, which is the strongest evidence in this paper that the advantage is
+mechanistic rather than incidental to one cohort.
+
+We state three limits, because the design is modest. The swing is $0.066$~AUROC, an order of magnitude
+smaller than the ${+}0.14$ to ${+}0.34$ observed on camera front ends, so this establishes the direction
+of the relationship and not its magnitude. Six conditions drawn from one corpus are not six independent
+samples, so these $p$-values describe an ordering that is unlikely to arise by chance rather than an
+effect sampled from a population; the test against the manipulation ($p=0.019$) is the one that does
+not partly presuppose its own predictor, and is the one we rely on. And $\sigma$ is computed
+window-level here but subject-level for the camera extractors, so the two are not on a common scale and
+we do not plot or model them together.
+
 The honest conclusion is that we have external evidence for the \emph{scope} of the claim rather than
 for the claim itself. The framing advantage is a property of decisions formed on a degraded,
 saturating front end---which is what our video cohort provides and what a contact belt does not---and
@@ -992,6 +1020,18 @@ we can no longer assert that it transfers to any sensor. A genuine external test
 cohort with camera-derived respiration and real tachypnea; the public infant video sets contain no
 fast-breathing cases (RR $12$--$38$), so no such test is currently available to us. That absence is
 now the single most important limitation of this work.
+
+\begin{figure*}[!t]\centering
+\includegraphics[width=7.0in]{fig_saturation.pdf}
+\caption{The framing advantage can be induced on demand. The contact-belt signal is progressively
+low-passed before training, with cohort, encoder, folds and both read-outs held fixed; each point is
+the mean of three seeds and bars are seed SDs. (a)~As the induced saturation $\sigma$ rises, the
+framing gain rises with it (Spearman $\rho={+}0.94$, $p=0.005$; weighted slope ${+}0.78$ per unit
+$\sigma$). (b)~The same data against the manipulation: the gain crosses zero as the cutoff drops below
+$1$~Hz, the $60$~breaths/min threshold, i.e.\ at the point where the pass-band stops admitting a fast
+breather. The clean belt---the condition of the failed replication---sits at the bottom of this curve.}
+\label{fig:saturation}
+\end{figure*}
 
 \subsection{Why we abandoned the fusion architecture}\label{sec:abl}
 The ablation below dissects PRISM-Breath, our regression \emph{baseline}, not the model we
