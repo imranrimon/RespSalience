@@ -181,8 +181,25 @@ selected epoch~65), indicating convergence rather than truncation; the ablation 
 budget-matched. The published extractors are full video CNNs trained with best-validation selection under
 their standard 15-epoch schedule (each fold $\approx$2\,h). Because a video-CNN epoch and a
 300-sample-head epoch are not equal units of compute, every method is selected by its best validation
-checkpoint rather than a fixed epoch count; a matched-epoch retraining of the baselines is a useful
-robustness check but was not compute-feasible for all four ($\approx$11 GPU-days at 100 epochs).
+checkpoint rather than a fixed epoch count.
+
+That reasoning would be unsatisfying on its own, so we tested it rather than asserting it. We retrained
+\textbf{DeepPhys}---the strongest of the five baselines, and therefore the one with the most to gain---at
+the same $100$-epoch budget as our own model, and it is that full-budget run we report throughout.
+A $6.7\times$ increase in training budget moves it from AUROC $0.762$ to $0.777$
+($\Delta{=}{+}0.015$, paired DeLong $p=0.52$) and leaves RR-MAE unchanged ($5.61 \to 5.62$). The budget
+effect is thus an order of magnitude smaller than the $+0.148$ gap that separates DeepPhys from
+RespSalience, and it is not statistically distinguishable from zero. Extending the remaining four to
+$100$ epochs ($\approx$11 GPU-days) would be a welcome addition, but on this evidence it is implausible
+that it would close a gap ten times the size of the effect it produces.
+
+We stress a structural point that makes the whole question secondary. The paper's central claims do
+not rest on any comparison between differently-trained networks. The head-swap
+(Sec.~\ref{sec:framing}) applies two read-outs to \emph{the same trained extractor's own signal}, and
+the objective experiment (Sec.~\ref{sec:objective}) swaps the loss on a \emph{frozen} encoder. In both,
+the representation---and hence its training budget---is held fixed and cancels from the comparison. A
+reader who distrusts the cross-model table entirely can still evaluate the paper's thesis from those
+two experiments alone.
 
 \textbf{Statistics.} AUROC differences use the paired fast-DeLong test (Sun \& Xu); the binary tachypnea
 decision uses the exact McNemar test on discordant pairs; confidence intervals are subject-level bootstrap

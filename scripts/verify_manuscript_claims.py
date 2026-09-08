@@ -559,6 +559,28 @@ def main() -> int:
         if _n_rows == 0:
             print("[warn] tab:fullmetric rows not parsed; table format may have changed")
 
+    # ---------------- training-budget robustness (supplementary) ----------------
+    # A reviewer will ask whether our 100-epoch budget versus the baselines' 15 explains the gap.
+    # The supplement answers it with DeepPhys retrained at the full budget; pin those numbers.
+    _d15 = scored("pedrr_kfold_deepphys", age_map)
+    _d100 = scored("pedrr_kfold_deepphys_100ep", age_map)
+    if _d15 is not None and _d100 is not None:
+        _s = sorted(set(_d15.sid) & set(_d100.sid))
+        _a = _d15[_d15.sid.isin(_s)].sort_values("sid")
+        _b = _d100[_d100.sid.isin(_s)].sort_values("sid")
+        _y = _a.y.to_numpy(int)
+        _au15 = roc_auc_score(_y, _a.tachy_prob); _au100 = roc_auc_score(_y, _b.tachy_prob)
+        ck.add("budget: DeepPhys 15ep AUROC", 0.762, _au15)
+        ck.add("budget: DeepPhys 100ep AUROC", 0.777, _au100)
+        ck.add("budget: 6.7x budget effect", 0.015, _au100 - _au15, tol=0.002)
+        _p = delong_test(_y, _b.tachy_prob.to_numpy(float), _a.tachy_prob.to_numpy(float))
+        ck.add("budget: DeepPhys 15-vs-100 DeLong p (n.s.)", 0.52,
+               float(_p[-1] if isinstance(_p, (tuple, list)) else _p), tol=0.01)
+        ck.add("budget: DeepPhys 15ep MAE", 5.61,
+               float((_a.pred_rr_bpm - _a.gt_rr_bpm).abs().mean()), tol=0.02)
+        ck.add("budget: DeepPhys 100ep MAE", 5.62,
+               float((_b.pred_rr_bpm - _b.gt_rr_bpm).abs().mean()), tol=0.02)
+
     bad = ck.report()
     if bad:
         print("\nEvery MISMATCH is a number in the manuscript that its own artifacts do not support.")
