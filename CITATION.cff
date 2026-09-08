@@ -6,9 +6,9 @@ message: >-
   accompanying manuscript.
 type: software
 authors:
-  - family-names: Rimon
-    given-names: Imran
-    email: imran.wvu@gmail.com
+  - family-names: Hossain
+    given-names: Muhammad Imran
+    email: muhammadimran.hossain@mail.wvu.edu
     affiliation: West Virginia University
 repository-code: 'https://github.com/imranrimon/RespSalience'
 abstract: >-
@@ -34,6 +34,6 @@ references:
       Beyond Respiratory-Rate Regression: Decision-Aware Modeling for
       Contactless Pediatric Tachypnea Screening
     authors:
-      - family-names: Rimon
-        given-names: Imran
+      - family-names: Hossain
+        given-names: Muhammad Imran
     status: preprint

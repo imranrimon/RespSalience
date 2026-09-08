@@ -9,7 +9,7 @@ description = "Decision-aware contactless pediatric tachypnea screening (RespSal
 readme = "README.md"
 requires-python = ">=3.11"
 license = { file = "LICENSE" }
-authors = [{ name = "Imran Rimon", email = "imran.wvu@gmail.com" }]
+authors = [{ name = "Muhammad Imran Hossain", email = "muhammadimran.hossain@mail.wvu.edu" }]
 
 # Authoritative pinned spec is environment.yml (conda). requirements.txt is a minimal pip subset.
 dependencies = [
