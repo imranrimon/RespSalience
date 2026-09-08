@@ -55,3 +55,7 @@ manuscript/*.zip
 
 # local development aids, not part of the published artifact
 CLAUDE.md
+
+# private research correspondence and memos (kept outside the repository)
+docs/expert_panel_data_request.md
+docs/*_Deep_Research_Memo.docx
