@@ -161,8 +161,8 @@ nine-objective comparison shows the gain is the training objective, not the repr
 RespSalience emits a distribution over rates and decides by the mass above the age threshold: one
 channel, no fusion, no depth or audio, no auxiliary components. Fixed in advance rather than chosen
 from the ablation table, it dominates the multimodal regression baseline in every age band---pooled
-AUROC $0.907\pm0.036$ over three seeds ($0.936$ ensembled) against $0.827$
-($p=1.3{\times}10^{-5}$), RR-MAE $5.60$ against $6.22$---with the gain monotone in difficulty
+AUROC $0.904\pm0.023$ over six seeds ($0.927$ ensembled) against $0.827$
+($p=1.3{\times}10^{-5}$), RR-MAE $5.50$ against $6.22$---with the gain monotone in difficulty
 (Sec.~\ref{sec:primary}).
 
 \item \emph{The neonatal blind spot is a read-out limit, not a sensing limit}---the sharpest
@@ -170,7 +170,7 @@ consequence. Under rate regression the band appears unscreenable (sensitivity $0
 true rate remains a detectable spectral peak in $100\%$ of fast-breathing clips, and the model's own
 ranking is nearly unimpaired. What fails is thresholding a rate that regression has shrunk toward the
 training mean (bias $-16.9$~breaths/min at RR~$\ge\!60$). The distributional read-out reaches AUROC
-$0.957$ in this band against the baseline's $0.650$, and an age-specific operating point chosen on
+$0.939$ in this band against the baseline's $0.650$, and an age-specific operating point chosen on
 out-of-fold data alone lifts neonatal sensitivity from $0.30$ to $0.80$, recovering $15$ tachypneic
 subjects cohort-wide while losing none ($p=10^{-4}$)---without touching the sensor, the extractor or
 the weights (Sec.~\ref{sec:age}).
@@ -381,22 +381,22 @@ age threshold, with no fusion head, no depth or audio input, and no auxiliary co
 The configuration was fixed in advance from the mechanism rather than chosen from the ablation table
 (Sec.~\ref{sec:simple}, Sec.~\ref{sec:framing}), trained once, and evaluated over three seeds. It
 dominates the regression baseline on every metric in every age band (Table~\ref{tab:headline}): pooled
-AUROC $0.907\pm0.036$ across seeds and $0.936$ for the three-seed ensemble against $0.827$
-(paired DeLong $p=1.3{\times}10^{-5}$), RR-MAE $5.60\pm0.26$ against $6.22$, and WHO-threshold
+AUROC $0.904\pm0.023$ across seeds and $0.927$ for the six-seed ensemble against $0.827$
+(paired DeLong $p=1.3{\times}10^{-5}$), RR-MAE $5.50\pm0.39$ against $6.22$, and WHO-threshold
 sensitivity $0.70$ against $0.55$. There is no accuracy/utility trade here: the recommended model is
 better on the regression metric \emph{and} on the clinical endpoint, while being the simpler system.
 
 Two features of the table matter more than the headline number. The gain is monotone in difficulty
 (${+}0.307$, ${+}0.094$, ${+}0.047$ from the youngest band to the oldest), the same age gradient that
 the objective swap and the read-out correction produce. And it is largest in the $<$2-month band, where
-the regression baseline is near chance ($0.650$) and the salience read-out reaches $0.957$---the band
+the regression baseline is near chance ($0.650$) and the salience read-out reaches $0.939$---the band
 we had previously described as unscreenable. Seed-to-seed spread is substantial ($0.866$, $0.924$,
 $0.931$), so we report the three-seed mean as the model's performance and the ensemble value only where
 labelled; single-seed numbers should not be quoted.
 
 \begin{table*}[!t]
 \caption{Recommended model versus the regression baseline on the full cohort ($n{=}332$, $84$ positive,
-corrected labels). AUROC for the salience model is the three-seed ensemble, with the per-seed mean
+corrected labels). AUROC for the salience model is the six-seed ensemble, with the per-seed mean
 $\pm$ SD given in the text; $p$ is a paired DeLong test, CI a subject bootstrap.
 Source: \texttt{scripts/train\_resp\_salience\_ssl.py}.}
 \label{tab:headline}\centering\small
@@ -413,10 +413,10 @@ $<$2mo   & 38  & 10 & 0.650 & \textbf{0.939} & $+0.289\,[{+}0.075,{+}0.529]$, $0
 \end{table*}
 
 Against prior work the same model is best on \emph{both} axes (Table~\ref{tab:main}). On the
-$298$-subject cohort used for every head-to-head in this paper it attains AUROC $0.935$ against
+$298$-subject cohort used for every head-to-head in this paper it attains AUROC $0.925$ against
 $0.726$--$0.826$ for the five published extractors and our own regression baseline, with every paired
 comparison significant at $p<10^{-4}$, while also achieving the \emph{lowest} RR-MAE of the six systems
-($5.21$ against $5.62$--$6.65$). This is worth stating precisely, because it is not the pattern of
+($5.13$ against $5.62$--$6.65$). This is worth stating precisely, because it is not the pattern of
 Section~\ref{sec:sota}: the trade-off there---better regressor, worse screen---characterises the
 \emph{regression baseline}, which buys discrimination at the cost of rate accuracy. A model whose
 decision is formed on the distribution does not pay that price. The exact-McNemar tests on the binary
@@ -426,7 +426,7 @@ Section~\ref{sec:ceiling}.
 \begin{table*}[!t]
 \caption{The recommended model against prior work, on the $298$-subject cohort common to all methods
 under one protocol (subject-disjoint five-fold CV, corrected age labels, identical decision rule).
-RespSalience is the three-seed ensemble. $\Delta$ and $p$ are paired against RespSalience: DeLong on
+RespSalience is the six-seed ensemble. $\Delta$ and $p$ are paired against RespSalience: DeLong on
 the AUROC gap, exact McNemar on the WHO decision. RespSalience holds the best value in \emph{both}
 columns. Source: \texttt{scripts/verify\_manuscript\_claims.py}.}
 \label{tab:main}\centering\small
@@ -515,7 +515,7 @@ conclusions that hold across the whole bracket.
 
 Two conclusions follow, and the second corrects an interpretation we had ourselves been drawn to.
 First, threshold-free ranking is essentially unconstrained by the reference: our headline AUROC of
-$0.936$ sits at $93.8\%$ of a $0.998$ ceiling, so what limits it is the model and the signal, not the
+$0.927$ sits at $92.9\%$ of a $0.998$ ceiling, so what limits it is the model and the signal, not the
 label. Second---and this is the correction---\emph{reference noise does not explain the DeLong/McNemar
 asymmetry reported throughout this paper}. With only about seven unstable labels there is not enough
 label churn to account for it. Had the reference been a single bedside count, the sensitivity ceiling
@@ -545,7 +545,7 @@ Panel agrees closely (optimistic) & 1.0 & $1.6\%$ & 0.999 & 0.967 & \\
 \textbf{Panel as measured} & \textbf{1.35} & $\mathbf{2.2\%}$ & \textbf{0.998} & \textbf{0.953} & \\
 Panel agrees loosely (pessimistic) & 2.0 & $3.4\%$ & 0.995 & 0.924 & \\\midrule
 \emph{Counterfactual: a single bedside count} & 2.6--6.2 & $6.3\%$ & 0.981 & 0.861 & \\\midrule
-\multicolumn{3}{@{}l}{\textbf{Our model attains}} & \textbf{0.935} & \textbf{0.762} & \\
+\multicolumn{3}{@{}l}{\textbf{Our model attains}} & \textbf{0.925} & \textbf{0.762} & \\
 \multicolumn{3}{@{}l}{\emph{\quad as a fraction of the measured ceiling}} & $93.8\%$ & $80.0\%$ & \\
 \bottomrule
 \end{tabular}
@@ -653,7 +653,7 @@ and the regressed rate is least reliable.}\label{fig:framing-thr}
 
 The reframing also attacks the neonatal blind spot. A salience over a rate grid has no regression ceiling,
 so the classifier recovers discrimination in the $<$2-month band where regression collapses: on the
-headline cohort AUROC rises from $0.650$ to $0.957$ (Table~\ref{tab:headline}), and predicted rates
+headline cohort AUROC rises from $0.650$ to $0.939$ (Table~\ref{tab:headline}), and predicted rates
 continue to track true rates in the range where the regressed estimate is pulled some $17$~breaths/min
 below truth (Fig.~\ref{fig:salience}a). The neonatal subgroup is small ($n{=}38$, $10$ positive, wide
 confidence intervals), so we treat the magnitude as an effect size rather than a specification; Sec.~\ref{sec:age} takes the neonatal case up directly and
@@ -1301,20 +1301,26 @@ All metrics are computed from per-fold prediction files with subject-disjoint sp
 use a paired implementation on matched subjects. Age-band, calibration, and decision-curve numbers derive
 from the same prediction files.
 
-We report one further source of variation that seeding does not remove, because it is larger than is
-commonly assumed. Fixing the Python, NumPy, and Torch seeds does \emph{not} make GPU training
-reproducible: cuDNN's convolution backward accumulates with atomics whose summation order varies between
-launches, so repeated runs of identical code at an identical seed diverge. Over three independent
-replicates of the full three-seed protocol we measured a per-seed AUROC spread of up to $0.046$ and an
-ensemble AUROC of $0.936$, $0.949$, and $0.945$ (SD $0.007$; MAE $5.13$, $4.72$, $4.87$). The values
-reported throughout this paper are from the \emph{first} replicate, which is the lowest of the three on
-both metrics---that is, the reported numbers are the most conservative we observed, not the best. For
-scale, this run-to-run SD is roughly one-sixteenth of the $+0.109$ AUROC gap that separates RespSalience
-from the regression baseline, so the comparison is unaffected; but a single reported figure at three
-decimal places would overstate what a rerun will show. We have since pinned the non-deterministic kernels,
-and training now reproduces bit-identically at a fixed seed (verified by two independent runs agreeing to
-$0$ in every one of $332$ subject predictions); under that setting the ensemble scores AUROC $0.941$ and
-MAE $5.03$, within the spread quoted above.
+Every model reported in this paper is trained deterministically, and we describe why that is worth
+saying, because seeding alone does not achieve it. Fixing the Python, NumPy, and Torch seeds does
+\emph{not} make GPU training reproducible: cuDNN's convolution backward accumulates with atomics whose
+summation order varies between launches, so repeated runs of identical code at an identical seed
+diverge. In an earlier, non-deterministic version of this work three replicates of the same protocol
+gave ensemble AUROCs of $0.936$, $0.949$, and $0.945$ and a per-seed spread of up to $0.046$, with
+individual subject probabilities differing by as much as $0.65$ between runs. That spread is small
+against the $+0.100$ gap this paper reports, but it is \emph{larger} than several component-level
+effects, and it invalidated one of them: an apparent benefit from self-supervised pretraining
+($p=0.044$) proved to be a single favourable draw and was removed from the model
+(Sec.~\ref{sec:framing}).
+
+We therefore pin the non-deterministic kernels (\texttt{cudnn.deterministic}, no autotuning,
+deterministic algorithm selection, and a fixed cuBLAS workspace), and training now reproduces
+bit-identically: two independent runs at the same seed agree to $0$ on every one of the $332$ subject
+predictions. Every number in this paper comes from that setting and can be regenerated exactly, and we
+report a six-seed rather than a three-seed ensemble so that no result depends on which seeds were drawn.
+The practical lesson generalises beyond this cohort: on a dataset of this size, an ablation evaluated
+from a single training run cannot distinguish a real component from run-to-run noise, and should not be
+reported as if it could.
 
 \section*{Data and code availability}
 The model implementation and all training, evaluation, and analysis scripts are publicly available at

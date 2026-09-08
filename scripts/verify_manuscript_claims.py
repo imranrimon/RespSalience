@@ -450,6 +450,38 @@ def main() -> int:
             ck.add(f"sec:disttriage split {lab} burden p", cb, pb_, tol=0.002)
             ck.add(f"sec:disttriage split {lab} safety p", cs, ps_, tol=0.002)
 
+    # ---------------- the model definition itself ----------------
+    # These guard the two corrections this study had to make. If a future edit reintroduces
+    # self-supervised pretraining, or silently swaps the published runs for a non-deterministic
+    # family, these fail rather than the paper quietly regaining an unsupported claim.
+    import scipy.stats as _sst
+    S6 = ensemble(SALIENCE, age_map)
+    V6 = ensemble(SSL_VARIANT, age_map)
+    if S6 is not None and V6 is not None:
+        ck.add("model uses six seeds", 6, len(SALIENCE), tol=0.5)
+        s_au = [roc_auc_score(scored(r, age_map).y, scored(r, age_map).tachy_prob) for r in SALIENCE]
+        v_au = [roc_auc_score(scored(r, age_map).y, scored(r, age_map).tachy_prob) for r in SSL_VARIANT]
+        d = np.asarray(v_au) - np.asarray(s_au)          # SSL minus no-SSL, per matched seed
+        ck.add("SSL effect on AUROC (null)", -0.0008, float(d.mean()), tol=0.002)
+        ck.add("SSL effect AUROC paired p (n.s.)", 0.95,
+               float(_sst.ttest_rel(v_au, s_au).pvalue), tol=0.02)
+        s_mae = [float((scored(r, age_map).pred_rr_bpm - scored(r, age_map).gt_rr_bpm).abs().mean())
+                 for r in SALIENCE]
+        v_mae = [float((scored(r, age_map).pred_rr_bpm - scored(r, age_map).gt_rr_bpm).abs().mean())
+                 for r in SSL_VARIANT]
+        ck.add("SSL effect on MAE (null, wrong sign)", -0.12,
+               float(np.mean(np.asarray(s_mae) - np.asarray(v_mae))), tol=0.02)
+        ck.add("SSL effect MAE paired p (n.s.)", 0.70,
+               float(_sst.ttest_rel(v_mae, s_mae).pvalue), tol=0.02)
+
+        # The materialised ensemble that downstream scripts read must BE the published model.
+        pub = scored("pedrr_kfold_salience_published", age_map)
+        if pub is not None:
+            m = S6.set_index("sid").loc[sorted(S6.sid)]
+            q = pub.set_index("sid").loc[sorted(S6.sid)]
+            ck.add("published run == seed ensemble (max |dProb|)", 0.0,
+                   float((m.tachy_prob - q.tachy_prob).abs().max()), tol=1e-6)
+
     bad = ck.report()
     if bad:
         print("\nEvery MISMATCH is a number in the manuscript that its own artifacts do not support.")

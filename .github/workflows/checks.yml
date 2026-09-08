@@ -22,3 +22,10 @@ jobs:
 
       - name: Manuscript consistency (labels, citations, floats)
         run: python tools/check_manuscript.py
+
+      # Reports how many result-like numbers no analysis script re-derives. Advisory: the datasets
+      # are not public, so CI cannot run the numerical verification itself. It exists so a drop in
+      # coverage is visible in the log when a section is added without harness support -- which is
+      # how every number error in this paper's history went unnoticed.
+      - name: Claim-coverage audit (advisory)
+        run: python tools/audit_claims.py
