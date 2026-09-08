@@ -1,0 +1,231 @@
+"""Does the framing advantage scale with how badly the front end saturates?
+
+The paper claims a mechanism, not just a difference: a regress-then-threshold read-out ranks cases by a
+monotone function of its own rate estimate, so when that estimate is compressed toward the training mean
+the ranking is compressed with it and no threshold can recover the case. If that is the real mechanism,
+the advantage of reading the distribution should be *proportional to the compression* -- large where the
+front end saturates, absent where it does not.
+
+That prediction is falsifiable, and it also explains this study's one negative result: the external
+replication on a contact belt (NCHSDB) found no framing advantage, and a clean belt does not saturate.
+Under the mechanism, that null is not a failure of the thesis but a point at zero on its dose-response
+curve.
+
+Two arms:
+
+  OBSERVATIONAL -- real camera front ends on the clinical cohort. Each extractor has its own degree of
+    saturation, measured from its own predictions; the framing gain at the WHO-relevant threshold comes
+    from the head-swap sweep. One point per front end.
+
+  CONTROLLED -- the belt signal, progressively low-passed. Cutting the pass-band toward the tachypnea
+    band (60 breaths/min = 1 Hz) removes the fast-breathing content, forcing the rate estimate to
+    saturate while everything else is held fixed. This turns a correlation across models into a
+    dose-response within one dataset and one pipeline.
+
+Saturation severity is measured on the OUTPUT, where the mechanism acts:
+    sigma = 1 - slope of OLS(predicted rate ~ true rate)
+sigma = 0 is a faithful front end; sigma -> 1 means the estimate ignores the true rate entirely.
+
+Run:  python scripts/saturation_severity.py --arm observational      (CPU, seconds)
+      python scripts/saturation_severity.py --arm controlled         (GPU, ~25 min)
+      python scripts/saturation_severity.py --arm figure             (after both)
+"""
+from __future__ import annotations
+
+import argparse
+import glob
+import json
+import os
+import sys
+
+import numpy as np
+import pandas as pd
+from sklearn.metrics import roc_auc_score
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(ROOT, "scripts"))
+OBS_OUT = os.path.join(ROOT, "outputs", "saturation_observational.csv")
+CTL_OUT = os.path.join(ROOT, "outputs", "saturation_controlled.csv")
+FIG = os.path.join(ROOT, "manuscript", "fig_saturation")
+
+WHO_NEONATE = 60.0
+
+
+def saturation(pred, true):
+    """1 - OLS slope of predicted rate on true rate. 0 = faithful, 1 = ignores the true rate."""
+    pred = np.asarray(pred, float); true = np.asarray(true, float)
+    m = np.isfinite(pred) & np.isfinite(true)
+    if m.sum() < 8 or np.std(true[m]) < 1e-6:
+        return np.nan
+    slope = np.polyfit(true[m], pred[m], 1)[0]
+    return float(np.clip(1.0 - slope, 0.0, 1.0))
+
+
+# ---------------------------------------------------------------------------------------------
+def arm_observational():
+    """Real camera front ends: saturation from their own predictions, gain from the head-swap sweep."""
+    sweep = pd.read_csv(os.path.join(ROOT, "outputs", "framing_bradypnea_sweep.csv"))
+    # The head-swap sweep is on a threshold grid; take the point nearest the neonatal WHO cutoff.
+    near = sweep.loc[(sweep.thr - WHO_NEONATE).abs().groupby(sweep.model).idxmin()]
+
+    RUNS = {"EfficientPhys": "pedrr_kfold_efficientphys",
+            "TS-CAN": "pedrr_kfold_tscan",
+            "PRISM(fusion)": "pedrr_kfold_main332"}
+    rows = []
+    for _, r in near.iterrows():
+        tag = RUNS.get(r.model)
+        if tag is None:
+            continue
+        ps = sorted(glob.glob(os.path.join(ROOT, "outputs", "paper_runs", tag,
+                                           "fold*", "test_eval", "prism_breath_predictions.csv")))
+        if not ps:
+            print(f"  [skip] {r.model}: no predictions"); continue
+        d = pd.concat([pd.read_csv(p) for p in ps], ignore_index=True)
+        g = d.groupby("subject_id").agg(pred=("pred_rr_bpm", "mean"), true=("gt_rr_bpm", "mean"))
+        sig = saturation(g.pred, g.true)
+        rows.append(dict(arm="observational", label=r.model, sigma=sig, gain=float(r.gain),
+                         lo=float(r.lo), hi=float(r.hi), thr=float(r.thr), n=int(r.npos + r.nneg)))
+        print(f"  {r.model:16s} sigma={sig:.3f}  gain@{r.thr:.0f}={r.gain:+.3f} "
+              f"[{r.lo:+.3f},{r.hi:+.3f}]")
+    pd.DataFrame(rows).to_csv(OBS_OUT, index=False)
+    print(f"wrote {OBS_OUT}")
+    return pd.DataFrame(rows)
+
+
+# ---------------------------------------------------------------------------------------------
+def arm_controlled(cutoffs, seeds, epochs, folds):
+    """Belt signal, progressively low-passed: induce saturation and watch the gain appear."""
+    import torch  # noqa: F401  (imported for the side effect of failing early without CUDA)
+    from nchsdb_framing import degrade, train_eval, subject_auroc
+
+    z = np.load(os.path.join(ROOT, "outputs", "nchsdb_waveforms.npz"), allow_pickle=True)
+    X0, rec, rr = z["X"], z["record"].astype(str), z["gt_rr"].astype(float)
+    y = (rr >= WHO_NEONATE).astype(int)
+    subs = np.array(sorted(set(rec)))
+    rs = np.random.default_rng(0); rs.shuffle(subs)
+    fold_of = {s: i % folds for i, s in enumerate(subs)}
+    folds_arr = np.array([fold_of[s] for s in rec])
+    print(f"windows {len(X0)} | infants {len(subs)} | tachypneic windows {int(y.sum())}")
+
+    rows = []
+    for lp in cutoffs:
+        Xd = degrade(X0, lowpass_hz=lp, rng=np.random.default_rng(0))
+        per = []
+        for s_i in range(seeds):
+            reg = np.full(len(X0), np.nan); cls = np.full(len(X0), np.nan)
+            for k in range(folds):
+                tr, te = folds_arr != k, folds_arr == k
+                o = train_eval(Xd[tr], rr[tr], Xd[te], epochs, seed=1000 * s_i + k)
+                reg[te] = o["reg_rr"]; cls[te] = o["cls_mass"]
+            a_r = subject_auroc(y, reg, rec)
+            a_c = subject_auroc(y, cls, rec)
+            sig = saturation(reg, rr)
+            per.append((sig, a_r, a_c, a_c - a_r))
+            print(f"  lp={lp if lp else 'none':>5} seed{s_i}: sigma={sig:.3f} "
+                  f"reg={a_r:.3f} cls={a_c:.3f} gain={a_c-a_r:+.3f}", flush=True)
+        p = np.array(per)
+        rows.append(dict(arm="controlled", label=f"lowpass {lp:g} Hz" if lp else "belt (clean)",
+                         lowpass_hz=lp, sigma=float(p[:, 0].mean()), sigma_sd=float(p[:, 0].std(ddof=1)),
+                         auroc_reg=float(p[:, 1].mean()), auroc_cls=float(p[:, 2].mean()),
+                         gain=float(p[:, 3].mean()), gain_sd=float(p[:, 3].std(ddof=1)), seeds=seeds))
+        pd.DataFrame(rows).to_csv(CTL_OUT, index=False)     # checkpoint after every condition
+        print(f"  -> lp={lp:g}: sigma={rows[-1]['sigma']:.3f} gain={rows[-1]['gain']:+.3f} "
+              f"+-{rows[-1]['gain_sd']:.3f}\n", flush=True)
+    print(f"wrote {CTL_OUT}")
+    return pd.DataFrame(rows)
+
+
+# ---------------------------------------------------------------------------------------------
+def make_figure():
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from scipy import stats
+
+    obs = pd.read_csv(OBS_OUT) if os.path.exists(OBS_OUT) else pd.DataFrame()
+    ctl = pd.read_csv(CTL_OUT) if os.path.exists(CTL_OUT) else pd.DataFrame()
+    if ctl.empty:
+        print("controlled arm missing; run --arm controlled first"); return 1
+
+    plt.rcParams.update({"font.family": "sans-serif", "font.size": 8, "axes.titlesize": 8.5,
+                         "axes.labelsize": 8, "xtick.labelsize": 7.5, "ytick.labelsize": 7.5,
+                         "legend.fontsize": 7, "axes.linewidth": 0.7,
+                         "axes.spines.top": False, "axes.spines.right": False})
+    CTLC, OBSC = "#1b4f72", "#c0603a"
+    fig, ax = plt.subplots(1, 2, figsize=(7.0, 2.9))
+
+    # (a) dose-response
+    c = ctl.sort_values("sigma")
+    ax[0].errorbar(c.sigma, c.gain, yerr=c.gain_sd, fmt="o-", ms=4, lw=1.3, color=CTLC,
+                   ecolor="0.6", elinewidth=0.8, capsize=2, zorder=3)
+    ax[0].axhline(0, color="0.4", lw=0.8, zorder=1)
+    for _, r in c.iterrows():
+        ax[0].annotate(r.label.replace("lowpass ", "").replace(" Hz", ""), (r.sigma, r.gain),
+                       textcoords="offset points", xytext=(0, 7), fontsize=6.2, ha="center",
+                       color="0.35")
+    if len(c) >= 3:
+        rho, p = stats.spearmanr(c.sigma, c.gain)
+        ax[0].text(0.03, 0.96, f"Spearman $\\rho={rho:.2f}$, $p={p:.3f}$", transform=ax[0].transAxes,
+                   va="top", fontsize=7, color=CTLC)
+    ax[0].set_xlabel("saturation severity  $\\sigma = 1 - $ slope")
+    ax[0].set_ylabel("framing gain ($\\Delta$AUROC)")
+    ax[0].set_title("(a) Induced saturation on a clean belt", loc="left")
+    ax[0].grid(axis="y", color="0.93", lw=0.5, zorder=0); ax[0].set_axisbelow(True)
+
+    # (b) both arms together
+    ax[1].axhline(0, color="0.4", lw=0.8, zorder=1)
+    ax[1].errorbar(c.sigma, c.gain, yerr=c.gain_sd, fmt="o", ms=4, color=CTLC, ecolor="0.7",
+                   elinewidth=0.8, capsize=2, label="belt, induced saturation", zorder=3)
+    if not obs.empty:
+        ax[1].errorbar(obs.sigma, obs.gain,
+                       yerr=[obs.gain - obs.lo, obs.hi - obs.gain], fmt="D", ms=5, color=OBSC,
+                       ecolor="0.7", elinewidth=0.8, capsize=2, label="camera front ends", zorder=4)
+        for _, r in obs.iterrows():
+            ax[1].annotate(r.label.replace("(fusion)", ""), (r.sigma, r.gain),
+                           textcoords="offset points", xytext=(-6, 6), fontsize=6.2, ha="right",
+                           color=OBSC)
+    allx = np.concatenate([c.sigma.to_numpy(), obs.sigma.to_numpy() if not obs.empty else []])
+    ally = np.concatenate([c.gain.to_numpy(), obs.gain.to_numpy() if not obs.empty else []])
+    if len(allx) >= 4:
+        rho, p = stats.spearmanr(allx, ally)
+        ax[1].text(0.03, 0.96, f"pooled $\\rho={rho:.2f}$, $p={p:.3f}$", transform=ax[1].transAxes,
+                   va="top", fontsize=7, color="0.25")
+    ax[1].set_xlabel("saturation severity  $\\sigma$")
+    ax[1].set_ylabel("framing gain ($\\Delta$AUROC)")
+    ax[1].set_title("(b) The gain tracks the saturation", loc="left")
+    ax[1].legend(frameon=False, loc="lower right", handlelength=1.2)
+    ax[1].grid(axis="y", color="0.93", lw=0.5, zorder=0); ax[1].set_axisbelow(True)
+
+    fig.tight_layout(pad=0.5, w_pad=2.0)
+    fig.savefig(FIG + ".pdf", dpi=600, bbox_inches="tight")
+    fig.savefig(FIG + ".png", dpi=600, bbox_inches="tight")
+    print(f"wrote {FIG}.pdf and .png")
+    return 0
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--arm", choices=["observational", "controlled", "figure", "all"],
+                    default="observational")
+    ap.add_argument("--cutoffs", default="0,2.0,1.4,1.1,0.9,0.7",
+                    help="low-pass cutoffs in Hz; 0 = no filtering. 60 breaths/min is 1 Hz, so "
+                         "cutoffs below ~1 remove the tachypnea band itself")
+    ap.add_argument("--seeds", type=int, default=3)
+    ap.add_argument("--epochs", type=int, default=30)
+    ap.add_argument("--folds", type=int, default=5)
+    a = ap.parse_args()
+
+    if a.arm in ("observational", "all"):
+        print("OBSERVATIONAL ARM -- real camera front ends")
+        arm_observational()
+    if a.arm in ("controlled", "all"):
+        print("\nCONTROLLED ARM -- belt with induced saturation")
+        cuts = [float(x) for x in a.cutoffs.split(",")]
+        arm_controlled(cuts, a.seeds, a.epochs, a.folds)
+    if a.arm in ("figure", "all"):
+        return make_figure()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -17,6 +17,10 @@ Launch detached so it survives the terminal that started it:
 #>
 
 param(
+    # What to run once the machine is free. Defaults to the salience checkpoint queue, but any
+    # long GPU job belongs behind the same gate -- the constraint is the machine, not the job.
+    [string] $Job         = "scripts/train_salience_checkpoints.ps1",
+    [string] $Label       = "salience_ckpt",
     [double] $MinFreeGB   = 4.5,
     [int]    $PollSeconds = 120,
     [int]    $StableChecks = 3,
@@ -29,8 +33,8 @@ Set-Location $root
 
 $logDir = Join-Path $root "outputs\logs"
 New-Item -ItemType Directory -Force -Path $logDir | Out-Null
-$log    = Join-Path $logDir "await_salience_$(Get-Date -Format 'yyyyMMdd-HHmmss').log"
-$marker = Join-Path $logDir "salience_ckpt_STATUS.txt"
+$log    = Join-Path $logDir "await_${Label}_$(Get-Date -Format 'yyyyMMdd-HHmmss').log"
+$marker = Join-Path $logDir "${Label}_STATUS.txt"
 
 function Log($msg) {
     $line = "[{0}] {1}" -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss"), $msg
@@ -45,8 +49,9 @@ function Get-BlockingJobs {
     $hits = @()
     foreach ($p in $procs) {
         if (-not $p.CommandLine) { continue }
-        # Never count our own training queue as a blocker.
+        # Never count our own jobs as blockers, or the watcher would wait on itself.
         if ($p.CommandLine -like "*train_resp_salience_ssl*") { continue }
+        if ($p.CommandLine -like "*saturation_severity*") { continue }
         foreach ($pat in $BusyPatterns) {
             if ($p.CommandLine -like "*$pat*") { $hits += $p; break }
         }
@@ -89,16 +94,16 @@ while ($true) {
 Log "machine is free (free $(Get-FreeGB) GB) - starting the training queue"
 Set-Content -Path $marker -Value "RUNNING $(Get-Date -Format s)" -Encoding utf8
 
-& powershell.exe -ExecutionPolicy Bypass -NoProfile -File (Join-Path $root "scripts\train_salience_checkpoints.ps1") *>&1 |
+& powershell.exe -ExecutionPolicy Bypass -NoProfile -File (Join-Path $root $Job) *>&1 |
     ForEach-Object { Add-Content -Path $log -Value $_ -Encoding utf8 }
 $code = $LASTEXITCODE
 
 $n = @(Get-ChildItem -Path (Join-Path $root "outputs\paper_runs") -Recurse -Filter "resp_salience_best.pt" -ErrorAction SilentlyContinue).Count
 if ($code -eq 0) {
-    Log "training queue finished cleanly; $n checkpoints on disk"
+    Log "$Label finished cleanly; $n checkpoints on disk"
     Set-Content -Path $marker -Value "DONE $(Get-Date -Format s) checkpoints=$n" -Encoding utf8
 } else {
-    Log "training queue FAILED (exit $code); $n checkpoints on disk"
+    Log "$Label FAILED (exit $code); $n checkpoints on disk"
     Set-Content -Path $marker -Value "FAILED $(Get-Date -Format s) exit=$code checkpoints=$n" -Encoding utf8
 }
 exit $code
