@@ -299,7 +299,6 @@ conformal rule defers neonates; a supporting FMCW-radar path recovers the neonat
 resolve.}\label{fig:arch}
 \end{figure*}
 
-\section{Datasets and Experimental Setup}
 \subsection{PRISM-Breath: the regression baseline}\label{sec:prism}
 The regression baseline we improve upon is a multimodal network with a reliability-weighted fusion rule. Each modality $m$ is
 encoded by a branch with explicit spectral features, a temporal ``scan'' block, and separate trunks,
@@ -328,6 +327,7 @@ We compute a Mondrian nonconformity quantile $\hat q^{(b)}$ per age band $b$ fro
 and form $[\hat r - \hat q^{(b)}, \hat r + \hat q^{(b)}]$. For $<$2~months this interval is
 uninformatively wide, which we operationalize as \emph{defer to clinician}.
 
+\section{Datasets and Experimental Setup}
 \subsection{Datasets}
 Table~\ref{tab:data} summarizes the data. \textbf{Pediatric-RR-332} is the primary clinical benchmark:
 $332$ children under five (age $0$--$59$~months, mean $18$; $195$ male, $137$ female) who presented with
