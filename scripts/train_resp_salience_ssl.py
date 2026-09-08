@@ -8,6 +8,8 @@ from __future__ import annotations
 import argparse, os
 from pathlib import Path
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
+# Must be set before CUDA initialises, so it lives here rather than in main().
+os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
 import numpy as np, pandas as pd
 from scipy import signal as ss
 import torch, torch.nn as nn
@@ -50,6 +52,29 @@ def who_thr(a):
 
 
 CKPT_FORMAT = 1
+
+
+def set_seed(seed, deterministic=True):
+    """Seed every RNG, and optionally pin the non-deterministic CUDA kernels.
+
+    torch.manual_seed alone is NOT enough here. cuDNN's convolution backward uses atomic
+    accumulation whose summation order varies between launches, and benchmark mode may pick a
+    different algorithm on each run; over the ~1550 optimiser steps per fold that compounds into
+    genuinely different models. Measured on this cohort, three runs at seed 0 with identical code
+    gave AUROC 0.866 / 0.912 / 0.907 -- a spread comparable to the seed-to-seed spread the paper
+    reports. Determinism costs some throughput and is worth it for a released artifact.
+    """
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+    if deterministic:
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+        try:
+            torch.use_deterministic_algorithms(True, warn_only=True)
+        except Exception as e:                     # older torch, or an op with no deterministic path
+            print(f"[warn] deterministic algorithms unavailable: {e}", flush=True)
 
 
 def save_checkpoint(path, enc, head, args, fold, n_train):
@@ -138,10 +163,13 @@ def main():
     ap.add_argument("--no-age-fix", dest="age_fix", action="store_false", default=True)
     ap.add_argument("--no-save-checkpoints", dest="save_checkpoints", action="store_false",
                     default=True, help="skip persisting per-fold weights (predictions are always written)")
+    ap.add_argument("--nondeterministic", dest="deterministic", action="store_false", default=True,
+                    help="allow fast non-deterministic cuDNN kernels; results then vary run to run "
+                         "at a fixed seed (measured spread ~0.05 AUROC per seed on this cohort)")
     args = ap.parse_args()
     global KFOLD
     KFOLD = ROOT / "outputs" / "paper_runs" / args.kfold
-    torch.manual_seed(args.seed); np.random.seed(args.seed)
+    set_seed(args.seed, deterministic=args.deterministic)
     X, D = load(args.age_fix)
     print(f"[ssl-salience] kfold={args.kfold} samples={len(X)} ssl={not args.no_ssl} "
           f"seed={args.seed}", flush=True)

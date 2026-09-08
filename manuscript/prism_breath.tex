@@ -1264,6 +1264,21 @@ All metrics are computed from per-fold prediction files with subject-disjoint sp
 use a paired implementation on matched subjects. Age-band, calibration, and decision-curve numbers derive
 from the same prediction files.
 
+We report one further source of variation that seeding does not remove, because it is larger than is
+commonly assumed. Fixing the Python, NumPy, and Torch seeds does \emph{not} make GPU training
+reproducible: cuDNN's convolution backward accumulates with atomics whose summation order varies between
+launches, so repeated runs of identical code at an identical seed diverge. Over three independent
+replicates of the full three-seed protocol we measured a per-seed AUROC spread of up to $0.046$ and an
+ensemble AUROC of $0.936$, $0.949$, and $0.945$ (SD $0.007$; MAE $5.13$, $4.72$, $4.87$). The values
+reported throughout this paper are from the \emph{first} replicate, which is the lowest of the three on
+both metrics---that is, the reported numbers are the most conservative we observed, not the best. For
+scale, this run-to-run SD is roughly one-sixteenth of the $+0.109$ AUROC gap that separates RespSalience
+from the regression baseline, so the comparison is unaffected; but a single reported figure at three
+decimal places would overstate what a rerun will show. We have since pinned the non-deterministic kernels,
+and training now reproduces bit-identically at a fixed seed (verified by two independent runs agreeing to
+$0$ in every one of $332$ subject predictions); under that setting the ensemble scores AUROC $0.941$ and
+MAE $5.03$, within the spread quoted above.
+
 \section*{Data and code availability}
 The model implementation and all training, evaluation, and analysis scripts are publicly available at
 \url{https://github.com/imranrimon/RespSalience}. AIR-125/400~\cite{infant_air} and the NCH Sleep
