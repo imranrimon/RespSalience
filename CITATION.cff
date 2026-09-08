@@ -12,7 +12,7 @@ authors:
     affiliation: West Virginia University
 identifiers:
   - type: doi
-    value: 10.5281/zenodo.22656057
+    value: 10.5281/zenodo.22657054
     description: Trained model weights and per-fold predictions
 repository-code: 'https://github.com/imranrimon/RespSalience'
 abstract: >-

@@ -6,7 +6,7 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
 [![Claims verified](https://img.shields.io/badge/manuscript%20claims-110%2F110%20verified-brightgreen.svg)](scripts/verify_manuscript_claims.py)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22656057.svg)](https://doi.org/10.5281/zenodo.22656057)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22657054.svg)](https://doi.org/10.5281/zenodo.22657054)
 
 Tachypnea — an age-elevated breathing rate — is the WHO's frontline sign for pediatric acute
 respiratory infection, and counting it by eye is the step that fails most often where the burden is
@@ -169,7 +169,7 @@ redistributed here.
 ## Trained weights
 
 The weights for the reported model are archived at
-**[10.5281/zenodo.22656057](https://doi.org/10.5281/zenodo.22656057)** — six seeds x five folds, plus
+**[10.5281/zenodo.22657054](https://doi.org/10.5281/zenodo.22657054)** — six seeds x five folds, plus
 the per-fold predictions every reported metric is derived from, and the weights of the self-supervised
 variant we tested and rejected (a null result cannot be checked from one arm).
 
