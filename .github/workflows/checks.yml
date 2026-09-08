@@ -1,0 +1,24 @@
+name: checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      # The datasets and trained artifacts are not public, so the numerical
+      # verification cannot run here. What CI can guarantee is that every
+      # analysis entry point is syntactically valid and imports cleanly.
+      - name: Byte-compile all sources
+        run: python -m compileall -q scripts src
+
+      - name: Manuscript consistency (labels, citations, floats)
+        run: python tools/check_manuscript.py

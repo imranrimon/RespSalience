@@ -1,4 +1,5 @@
-%% PRISM-Breath -- Supplementary Material (standalone; compiles by itself with pdfLaTeX)
+%% RespSalience -- Supplementary Material (standalone; compiles by itself with pdfLaTeX)
+%% Proposed model: RespSalience. Regression baseline: PRISM-Breath.
 %% No bibliography needed; references to the main paper are by name.
 \documentclass[journal]{IEEEtran}
 \usepackage[cmex10]{amsmath}
@@ -21,7 +22,7 @@ Contactless Pediatric Tachypnea Screening}
 \maketitle
 
 \noindent This document supplements the main paper with (i) complete per-fold results for
-PRISM-Breath and the four published extractors, (ii) an extended design-variant table, and (iii) the
+PRISM-Breath and four of the five published extractors (PhysFormer is omitted here: its stored predictions carry no tachypnea probability, so it cannot enter the per-fold AUROC table), (ii) an extended design-variant table, and (iii) the
 full training and inference hyperparameters. All numbers are computed from the same subject-disjoint
 five-fold cross-validation prediction files used in the main paper; every subject is tested exactly once.
 
@@ -38,39 +39,43 @@ model instability---PRISM's advantage holds even there ($0.812$ vs.\ $0.613$--$0
 \setlength{\tabcolsep}{4pt}
 \begin{tabular}{@{}lcccccc@{}}\toprule
 Fold & $n$ & pos & RR-MAE & Sens & Spec & AUROC\\\midrule
-Fold 0 & 67 & 20 & 8.20 & 0.55 & 0.94 & 0.812 \\
-Fold 1 & 67 & 19 & 5.54 & 0.63 & 0.92 & 0.871 \\
-Fold 2 & 66 & 15 & 5.16 & 0.93 & 0.90 & 0.969 \\
-Fold 3 & 66 & 16 & 6.85 & 0.56 & 0.94 & 0.891 \\
-Fold 4 & 66 & 14 & 5.18 & 0.64 & 0.88 & 0.929 \\\midrule
-\textbf{Pooled} & 332 & 84 & 6.19 & 0.65 & 0.92 & 0.881 \\
-\textbf{Mean$\pm$SD} & --- & --- & $6.19{\pm}1.32$ & --- & --- & $0.894{\pm}0.053$ \\\bottomrule
+Fold 0 & 67 & 20 & 7.84 & 0.65 & 0.94 & 0.766 \\
+Fold 1 & 67 & 19 & 5.63 & 0.53 & 0.90 & 0.808 \\
+Fold 2 & 66 & 15 & 5.67 & 0.67 & 0.98 & 0.939 \\
+Fold 3 & 66 & 16 & 6.17 & 0.25 & 0.94 & 0.845 \\
+Fold 4 & 66 & 14 & 5.79 & 0.64 & 0.87 & 0.857 \\
+\midrule
+\textbf{Pooled} & 332 & 84 & 6.22 & 0.55 & 0.92 & 0.827 \\
+\textbf{Mean$\pm$SD} & --- & --- & $6.22{\pm}0.93$ & --- & --- & $0.843{\pm}0.064$ \\
+\bottomrule
 \end{tabular}
 \end{table}
 
-\begin{table}[!t]
-\caption{Per-fold tachypnea AUROC, all methods (298 matched subjects for baselines).}
+\begin{table*}[!t]
+\caption{Per-fold tachypnea AUROC (298 matched subjects for baselines; PhysFormer omitted, see text).}
 \label{tab:s2}\centering\small
 \begin{tabular}{@{}lccccc@{}}\toprule
 Method & Fold 0 & Fold 1 & Fold 2 & Fold 3 & Fold 4\\\midrule
-\textbf{PRISM-Breath} & \textbf{0.812} & \textbf{0.871} & \textbf{0.969} & \textbf{0.891} & \textbf{0.929} \\
+\textbf{PRISM-Breath} & \textbf{0.766} & \textbf{0.808} & \textbf{0.939} & \textbf{0.845} & \textbf{0.857} \\
 EfficientPhys & 0.681 & 0.750 & 0.770 & 0.821 & 0.750 \\
 DeepPhys & 0.675 & 0.793 & 0.808 & 0.823 & 0.715 \\
 TS-CAN & 0.626 & 0.814 & 0.730 & 0.707 & 0.758 \\
-VIRENet & 0.613 & 0.807 & 0.933 & 0.765 & 0.680 \\\bottomrule
+VIRENet & 0.613 & 0.807 & 0.933 & 0.765 & 0.680 \\
+\bottomrule
 \end{tabular}
-\end{table}
+\end{table*}
 
 \begin{table}[!t]
-\caption{Per-fold RR mean-absolute-error (breaths/min), all methods.}
+\caption{Per-fold RR mean-absolute-error (breaths/min); PhysFormer omitted, see text.}
 \label{tab:s3}\centering\small
 \begin{tabular}{@{}lccccc@{}}\toprule
 Method & Fold 0 & Fold 1 & Fold 2 & Fold 3 & Fold 4\\\midrule
-PRISM-Breath & 8.20 & 5.54 & 5.16 & 6.85 & 5.18 \\
+PRISM-Breath & 7.84 & 5.63 & 5.67 & 6.17 & 5.79 \\
 EfficientPhys & 7.66 & 5.38 & 5.82 & 6.14 & 5.51 \\
 DeepPhys & 7.54 & 4.17 & 5.46 & 5.74 & 5.12 \\
 TS-CAN & 8.36 & 4.26 & 5.81 & 6.98 & 5.34 \\
-VIRENet & 8.53 & 4.13 & 4.11 & 6.89 & 5.94 \\\bottomrule
+VIRENet & 8.53 & 4.13 & 4.11 & 6.89 & 5.94 \\
+\bottomrule
 \end{tabular}
 \end{table}
 
@@ -84,30 +89,36 @@ Table~\ref{tab:s4} lists additional variants beyond the main-paper ablation, eva
 pooled five-fold protocol on all 332 subjects. Frequency-forward fusion, heteroscedastic/synthetic
 adapters, and a compact AirFlow head neither help nor hurt materially; the hand-crafted optical-flow
 channel (``v3'') is competitive in-domain but collapses out-of-domain (main paper, Table~VI). Among
-sequence backbones, PRISM's reliability-weighted fusion significantly outperforms a Mamba-style
-state-space fusion and is statistically comparable to a CliffPhys-style backbone.
+sequence backbones, neither a Mamba-style state-space fusion nor a CliffPhys-style backbone differs
+significantly from PRISM's reliability-weighted fusion---another instance of the architecture mattering
+less than the decision rule.
 
 \begin{table*}[!t]
-\caption{Extended design variants (pooled five-fold, 332 subjects). DeLong $p$ is vs.\ full PRISM
-(AUROC 0.881); ``n.s.'' $=$ not significant.}
+\caption{Extended design variants (pooled five-fold). DeLong $p$ is paired against full PRISM
+(AUROC $0.827$) on the subject intersection; ``n.s.'' $=$ not significant. Two variants were trained on
+the 297-subject learned-flow signal set and are marked accordingly. Note that two variants
+\emph{exceed} the full model, consistent with the ablation finding that no component is individually
+load-bearing.}
 \label{tab:s4}\centering\small
-\begin{tabular}{@{}lccc@{}}\toprule
-Variant & RR-MAE & AUROC & DeLong $p$ vs.\ PRISM\\\midrule
-PRISM-Breath (full) & 6.19 & 0.881 & --- \\
-Flow-only (depth/audio off) & 6.07 & 0.860 & n.s. \\
-Frequency-forward fusion & 6.35 & 0.856 & n.s. \\
-Heteroscedastic $+$ synthetic & 6.23 & 0.887 & n.s. \\
-Hand-crafted flow (v3) & 6.20 & 0.853 & n.s. \\
-AirFlow-compact head & 6.54 & 0.842 & n.s. \\\midrule
-Mamba-fusion backbone & 7.55 & 0.809 & $0.002$ \\
-CliffPhys-style backbone & 6.53 & 0.850 & $0.090$ (n.s.) \\\bottomrule
+\begin{tabular}{@{}lcccc@{}}\toprule
+Variant & $n$ & RR-MAE & AUROC & DeLong $p$ vs.\ PRISM\\\midrule
+PRISM-Breath (full) & 332 & 6.22 & 0.827 & --- \\
+Flow-only (depth/audio off) & 332 & 6.15 & \textbf{0.890} & $3.0{\times}10^{-4}$ \\
+Frequency-forward fusion & 297 & 6.38 & 0.870 & $0.033$ \\
+Heteroscedastic $+$ synthetic & 297 & 6.72 & 0.855 & $0.148$ (n.s.) \\
+Hand-crafted flow (v3) & 332 & 6.20 & 0.853 & $0.426$ (n.s.) \\
+AirFlow-compact head & 332 & 6.54 & 0.842 & $0.447$ (n.s.) \\\midrule
+Mamba-fusion backbone & 332 & 7.55 & 0.809 & $0.419$ (n.s.) \\
+CliffPhys-style backbone & 332 & 6.53 & 0.850 & $0.280$ (n.s.) \\\bottomrule
 \end{tabular}
 \end{table*}
 
 \section{Hyperparameters}
-Tables~\ref{tab:s5}--\ref{tab:s6} report the exact settings used. PRISM-Breath is a compact model
-($d_{\text{model}}=64$, sequence length $300$); the headline operating points are averaged over three
-seeds ($42,52,62$).
+Tables~\ref{tab:s5}--\ref{tab:s6} report the exact settings used. Both models are compact: the
+PRISM-Breath baseline uses $d_{\text{model}}=64$ and sequence length $300$, and RespSalience is a
+four-block one-dimensional convolutional encoder ($32/64/128/128$ channels) followed by a linear
+salience head over $169$ rate bins. Headline operating points for RespSalience are averaged over three
+training seeds ($0,1,2$).
 
 \begin{table}[!t]
 \caption{PRISM-Breath model and supervised-training hyperparameters.}
@@ -178,6 +189,14 @@ decision uses the exact McNemar test on discordant pairs; confidence intervals a
 ($10^{4}$ resamples). Calibration uses expected calibration error and the Brier score; clinical usefulness
 uses decision-curve net benefit.
 
+\textbf{Table provenance.} All tables apply the WHO thresholds to \emph{corrected} ages: nine neonates
+were stored with a stale \texttt{age\_months}${=}6$ and were therefore scored against the 2--12mo cutoff
+rather than the neonatal one, which moves the cohort from $86$ to $84$ tachypneic subjects and the
+$<$2mo band from $29$ to $38$. Every cell of Tables~\ref{tab:s1}--\ref{tab:s3} is regenerated from a
+single prediction artifact under a single label set by
+\texttt{scripts/regenerate\_supplementary\_tables.py} rather than copied from a logged summary, so the
+per-fold, pooled and mean$\pm$SD entries are guaranteed mutually consistent.
+
 \textbf{Provenance.} Each prediction file follows a \texttt{\{dataset\}\_\{subject\}\_\{video\}}
 contract, enabling the exact per-fold reconstruction in Tables~\ref{tab:s1}--\ref{tab:s3}. A known
 extractor-leakage pitfall (cross-fold caching of a flow backbone) was identified and excluded. Re-extracting
@@ -188,5 +207,6 @@ $+0.019$ AUROC (DeLong $p=0.58$, n.s.) and TS-CAN $-0.014$---and the leakage-fre
 \input{tripod_checklist}
 \input{appendix_evals}
 \input{appendix_reviewer_analyses}
+\input{appendix_selection}
 
 \end{document}

@@ -1,0 +1,36 @@
+Copyright (c) 2026 Imran Rimon. All rights reserved.
+
+RESEARCH USE LICENSE
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to use,
+copy, and modify the Software for non-commercial academic research and
+teaching purposes, and to reproduce the results reported in the accompanying
+manuscript, subject to the following conditions:
+
+1. The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software.
+
+2. Any publication or public presentation of results obtained using the
+   Software shall cite the accompanying manuscript (see CITATION.cff).
+
+3. Commercial use, redistribution as part of a commercial product or service,
+   and sublicensing are not granted by this license. For such uses, contact the
+   copyright holder.
+
+4. The Software is research code. It is NOT a medical device, has NOT been
+   cleared or approved by any regulatory authority, and MUST NOT be used to
+   inform clinical decisions about any individual patient. Tachypnea is a
+   screening sign, not a diagnosis.
+
+5. No dataset is distributed under this license. The datasets referenced by the
+   Software remain governed by the terms of their respective providers,
+   including credentialed-access agreements where applicable.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

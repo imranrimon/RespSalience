@@ -12,7 +12,8 @@ import numpy as np, pandas as pd
 from scipy import signal as ss
 import torch, torch.nn as nn
 ROOT = Path(__file__).resolve().parents[1]
-KFOLD = ROOT / "outputs" / "paper_runs" / "pedrr_kfold_learned"
+KFOLD = ROOT / "outputs" / "paper_runs" / "pedrr_kfold_learned"   # overridden by --kfold
+AGE_REF = ROOT / "outputs" / "paper_runs" / "pedrr_kfold_flowonly_agefix"  # carries corrected ages
 FS, N = 25.0, 1440
 BINS = np.arange(6.0, 90.0 + 1e-6, 0.5); NB = len(BINS)
 DEV = "cuda" if torch.cuda.is_available() else "cpu"
@@ -44,13 +45,38 @@ class SalHead(nn.Module):
         super().__init__(); s.pool = nn.AdaptiveAvgPool1d(1); s.fc = nn.Linear(128, nb)
     def forward(s, z): return torch.sigmoid(s.fc(s.pool(z).squeeze(-1)))
 
-def load():
+def who_thr(a):
+    return 60.0 if a < 2 else (50.0 if a < 12 else 40.0)
+
+
+def corrected_ages():
+    """subject_id -> age_months from the reference run that carries the age correction."""
+    m = {}
+    for k in range(5):
+        p = AGE_REF / f"fold{k}" / "test_eval" / "prism_breath_predictions.csv"
+        if p.exists():
+            d = pd.read_csv(p)
+            m.update(dict(zip(d["subject_id"].astype(str), d["age_months"].astype(float))))
+    return m
+
+
+def load(age_fix=True):
     rows = []
     for k in range(5):
         d = pd.read_csv(KFOLD / f"fold{k}" / "test_eval" / "prism_breath_predictions.csv")
         d["subject_id"] = d["subject_id"].astype(str); d["fold"] = k
         rows.append(d[["subject_id","video_id","signal_path","gt_rr_bpm","threshold_bpm","gt_tachy","age_months","fold"]])
-    D = pd.concat(rows, ignore_index=True); X, keep = [], []
+    D = pd.concat(rows, ignore_index=True)
+    if age_fix:
+        am = corrected_ages()
+        if am:
+            n0 = int((D["gt_tachy"] != (D["gt_rr_bpm"] >= D["threshold_bpm"]).astype(int)).sum())
+            D["age_months"] = D["subject_id"].map(am).fillna(D["age_months"])
+            D["threshold_bpm"] = D["age_months"].map(who_thr)
+            D["gt_tachy"] = (D["gt_rr_bpm"] >= D["threshold_bpm"]).astype(int)
+            print(f"[age-fix] applied corrected ages to {len(am)} subjects; "
+                  f"positives now {int(D['gt_tachy'].sum())}", flush=True)
+    X, keep = [], []
     for i, r in D.iterrows():
         if os.path.exists(r["signal_path"]):
             z = np.load(r["signal_path"], allow_pickle=True)
@@ -73,9 +99,17 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--seed", type=int, default=0); ap.add_argument("--no-ssl", action="store_true")
     ap.add_argument("--epochs", type=int, default=70); ap.add_argument("--tag", default="_ssl")
+    ap.add_argument("--kfold", default="pedrr_kfold_learned",
+                    help="run root supplying fold assignment and signal paths; use a 332-subject run "
+                         "(e.g. pedrr_kfold_main332) to train on the full cohort")
+    ap.add_argument("--no-age-fix", dest="age_fix", action="store_false", default=True)
     args = ap.parse_args()
+    global KFOLD
+    KFOLD = ROOT / "outputs" / "paper_runs" / args.kfold
     torch.manual_seed(args.seed); np.random.seed(args.seed)
-    X, D = load(); print(f"[ssl-salience] samples={len(X)} ssl={not args.no_ssl} seed={args.seed}", flush=True)
+    X, D = load(args.age_fix)
+    print(f"[ssl-salience] kfold={args.kfold} samples={len(X)} ssl={not args.no_ssl} "
+          f"seed={args.seed}", flush=True)
     Tgt = np.stack([gauss(r) for r in D["gt_rr_bpm"]]); binsT = torch.tensor(BINS, device=DEV)
     pr = np.full(len(D), np.nan); pb = np.full(len(D), np.nan)
     for k in range(5):

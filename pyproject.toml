@@ -3,13 +3,13 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "prism-breath"
+name = "respsalience"
 version = "1.0.0"
-description = "Non-contact pediatric respiratory-rate estimation and tachypnea screening (PRISM-Breath)"
+description = "Decision-aware contactless pediatric tachypnea screening (RespSalience)"
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "Proprietary - research use" }
-authors = [{ name = "PRISM-Breath Team" }]
+license = { file = "LICENSE" }
+authors = [{ name = "Imran Rimon", email = "imran.wvu@gmail.com" }]
 
 # Authoritative pinned spec is environment.yml (conda). requirements.txt is a minimal pip subset.
 dependencies = [
@@ -32,8 +32,8 @@ dependencies = [
 app = ["streamlit", "fastapi", "uvicorn"]
 
 [tool.setuptools]
-packages = ["prism_breath"]
-package-dir = { prism_breath = "src" }
+packages = ["respsalience"]
+package-dir = { respsalience = "src" }
 
 [tool.setuptools.package-data]
 prism_breath = ["config/*.yaml"]
@@ -46,3 +46,7 @@ prism_breath = ["config/*.yaml"]
 # manuscript/     IEEE MTT paper (Overleaf-ready): prism_breath.tex + .bib + 600-DPI figs
 # tools/          one-off utilities (pdf extraction, project reorg helper)
 # data/ outputs/ external/   gitignored (datasets, results/checkpoints, vendored third-party)
+
+[project.urls]
+Homepage = "https://github.com/imranrimon/RespSalience"
+Repository = "https://github.com/imranrimon/RespSalience"

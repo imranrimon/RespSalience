@@ -44,3 +44,14 @@ __pycache__/
 # Experiment Logs
 pipeline_debug.log
 *.log
+
+# added during repository standardisation
+physionet.org/
+*.TRUNCATED_BACKUP
+manuscript/*.zip
+.ipynb_checkpoints/
+*.egg-info/
+.pytest_cache/
+
+# local development aids, not part of the published artifact
+CLAUDE.md

@@ -1,0 +1,67 @@
+%% appendix_selection.tex -- paste-in fragment (\input into prism_breath_supplementary.tex).
+%% Sources: scripts/selection_criterion_experiment.py (the A/B), scripts/verify_main_run.py
+%% (committed-vs-measured), scripts/identify_baseline_checkpoint.py (which weights the published
+%% baselines actually evaluated), scripts/reselect_baseline_checkpoints.py (the matched arm).
+
+\section{Checkpoint Selection Is Part of the Decision Rule}
+\label{app:selection}
+
+Section~\ref{sec:selmatrix} reports the selection-rule $\times$ model-family comparison and the
+mechanism it establishes. This appendix records the supporting detail: the observational signal that
+prompted the audit, the per-fold interventional result, and the provenance of our reported headline.
+
+\subsection{The criterion was misaligned}
+Our training loop selected each fold's checkpoint by a validation composite dominated by regression
+error, $\text{score} = \text{val MAE} + 5\cdot\text{review rate}$. Across the ten folds of the two full
+runs we have, that selected validation MAE correlates \emph{positively} with test tachypnea AUROC
+($r={+}0.879$, $p=0.0008$) --- lower validation MAE goes with a \emph{worse} test screen. The effect holds
+within each run separately (${+}0.897$, $n{=}5$, $p=0.039$; ${+}0.821$, $n{=}5$, $p=0.088$) and survives
+partialling out each fold's RR spread (${+}0.854$, $p=0.0017$); the obvious confound pushes the other way,
+since fold RR spread correlates negatively with both quantities.
+
+\subsection{An interventional test}
+Correlation across folds is weak evidence, so we ran the intervention. Two complete five-fold runs,
+identical in data, folds, architecture, budget and seed, differing \emph{only} in the selection rule
+(Table~\ref{tab:selection}):
+
+\begin{table}[!t]
+\caption{Checkpoint selection, held-out test performance ($n{=}332$, 84 positive). The two criteria move
+the two metrics in opposite directions. Paired DeLong for AUROC; paired Wilcoxon on per-subject absolute
+error for MAE.}
+\label{tab:selection}\centering\small
+\begin{tabular}{@{}lccc@{}}\toprule
+ & val-MAE selection & val-AUROC selection & paired test\\\midrule
+Tachypnea AUROC   & 0.827 & \textbf{0.850} & ${+}0.023\,[{-}0.013,{+}0.061]$, $p=0.22$\
+RR-MAE (br/min)   & \textbf{6.22} & 6.90 & ${+}0.68$, $p=1{\times}10^{-4}$\
+Sens / Spec @ WHO & 0.55 / 0.92 & 0.55 / 0.92 & 32 decisions flip, 16 each way\
+Folds won (AUROC) & 1 / 5 & \textbf{4 / 5} & ---\\bottomrule
+\end{tabular}
+\end{table}
+
+Only the MAE cost is significant. The honest summary is therefore not ``selecting on AUROC is better'':
+it is that \emph{selecting on regression error reliably buys about $0.7$ breaths/min of RR-MAE and gives
+up an amount of decision quality this cohort is too small to resolve}. What makes us take the direction
+seriously is where the difference sits. The gain from decision-aware selection is monotone in difficulty,
+and largest exactly where the screen is weakest: ${+}0.086$ AUROC in the $<$2mo band ($0.650\to0.736$),
+${+}0.027$ at $2$--$12$mo, ${+}0.004$ at $12$--$60$mo. That is the same age gradient the classification
+reframing shows (Section~\ref{sec:framing}) and the same one the independent replication shows.
+
+\subsection{Why our headline moved}
+This also resolves a discrepancy a reader of our earlier preprint would notice. That draft reported
+pooled AUROC $0.881$; the regenerated main run reports $0.827$. The gap is not the age-label correction
+($+0.002$), nor extractor leakage ($+0.005$ to $+0.019$), nor the cohort (on the identical 297 subjects
+the new run scores $0.826$ where the old scored $0.875$). It is selection variance under a criterion that
+does not track the endpoint: honest retrains of this configuration span AUROC $0.83$--$0.89$. We report
+the regenerated run, and we no longer regard a single favourable draw under an endpoint-blind criterion
+as a reportable operating point.
+
+\subsection{Fairness of the comparison}
+The audit behind Section~\ref{sec:selmatrix} established that the published extractors were never
+checkpoint-selected: their drivers evaluate whatever weights remain resident when training returns, so
+the committed predictions come from the final epoch, and the checkpoint the trainer flags as best is
+written but never loaded. We verified this bit-exactly on two folds (maximum
+$|\Delta\mathrm{RR}|=0.000$ against the last epoch, versus $9.5$~breaths/min against the flagged
+checkpoint). Because every epoch was checkpointed, the matched arm required inference only, and each
+model was given the same number of candidate checkpoints so that search budget could not act as a
+confound. Harnesses: \texttt{scripts/identify\_baseline\_checkpoint.py},
+\texttt{scripts/reselect\_baseline\_checkpoints.py}, \texttt{scripts/selection\_matrix.py}.

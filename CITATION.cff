@@ -1,0 +1,39 @@
+cff-version: 1.2.0
+title: >-
+  RespSalience: decision-aware contactless pediatric tachypnea screening
+message: >-
+  If you use this software or the analyses it produces, please cite the
+  accompanying manuscript.
+type: software
+authors:
+  - family-names: Rimon
+    given-names: Imran
+    email: imran.wvu@gmail.com
+    affiliation: West Virginia University
+repository-code: 'https://github.com/imranrimon/RespSalience'
+abstract: >-
+  Reference implementation and reproduction artifact for decision-aware
+  respiratory screening from RGB video. The proposed model, RespSalience,
+  emits a distribution over respiratory rates and forms the tachypnea
+  decision by integrating the probability mass above the WHO age threshold,
+  rather than regressing a rate and thresholding the point estimate. The
+  repository also contains PRISM-Breath, the multimodal regression baseline
+  it is compared against, and the analysis code that reproduces every
+  quantitative claim in the manuscript.
+keywords:
+  - respiratory rate
+  - tachypnea
+  - contactless monitoring
+  - pediatric
+  - clinical decision support
+  - calibration
+license-url: 'https://github.com/imranrimon/RespSalience/blob/main/LICENSE'
+references:
+  - type: article
+    title: >-
+      Beyond Respiratory-Rate Regression: Decision-Aware Modeling for
+      Contactless Pediatric Tachypnea Screening
+    authors:
+      - family-names: Rimon
+        given-names: Imran
+    status: preprint

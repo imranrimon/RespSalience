@@ -92,7 +92,11 @@ if __name__=="__main__":
     ap=argparse.ArgumentParser()
     ap.add_argument("--deepphys100",action="store_true",help="use matched-compute pedrr_kfold_deepphys_100ep")
     ap.add_argument("--deepphys",default=None,help="override DeepPhys run root")
+    ap.add_argument("--prism-run",default=None,
+                    help="override the PRISM run root (e.g. outputs/paper_runs/pedrr_kfold_main332). "
+                         "The default points at a 297-subject run that predates the regenerated main run.")
     a=ap.parse_args()
+    if a.prism_run: RUNS[PRISM]=a.prism_run
     if a.deepphys100: RUNS["DeepPhys"]="outputs/paper_runs/pedrr_kfold_deepphys_100ep"
     elif a.deepphys: RUNS["DeepPhys"]=a.deepphys
     print(f"DeepPhys run = {RUNS['DeepPhys']}",flush=True)

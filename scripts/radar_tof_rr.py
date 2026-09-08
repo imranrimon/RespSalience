@@ -21,9 +21,30 @@ import pandas as pd
 from scipy.signal import butter, filtfilt, detrend
 
 
+# Respiration occupies 0.1-1.6 Hz, but these recordings are sampled at ~2000-2500 Hz. Designing a
+# 3rd-order Butterworth band-pass directly at that rate puts the low cutoff at 0.1/1250 = 8e-5 of
+# Nyquist, where the filter coefficients are numerically degenerate in float64: filtfilt returns a
+# signal whose spectrum is dominated by the band edge, and EVERY recording reports the lower cutoff
+# (6.0 BPM) regardless of its true rate. Decimating to ~20 Hz before filtering -- still >12x the
+# 1.6 Hz upper band edge -- makes the design well conditioned and recovers the true rate exactly.
+TARGET_FS = 20.0
+
+
+def _decimate_to(x, fs, target=TARGET_FS):
+    """Mean-pool by an integer factor so the band-pass is designed at a sane rate."""
+    q = int(fs // target)
+    if q <= 1:
+        return np.asarray(x, float), fs
+    n = (len(x) // q) * q
+    return np.asarray(x[:n], float).reshape(-1, q).mean(axis=1), fs / q
+
+
 def band_fft_rr(x, fs, lo=0.1, hi=1.6):
     x = np.asarray(x, float); x = x[np.isfinite(x)]
     if len(x) < 32 or fs <= 0 or not np.isfinite(fs):
+        return float("nan")
+    x, fs = _decimate_to(x, fs)
+    if len(x) < 32:
         return float("nan")
     x = detrend(x)
     ny = fs / 2.0

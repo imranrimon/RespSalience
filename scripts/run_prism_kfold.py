@@ -31,6 +31,12 @@ def main():
     ap.add_argument("--pretrain-epochs", type=int, default=0,
                     help="if >0, run per-fold SSL pretrain (pretrain_prism_breath) first -> FAITHFUL control (headline used 100)")
     ap.add_argument("--skip-existing", action="store_true")
+    ap.add_argument("--selection-metric", choices=["mae","auroc","hybrid"], default="",
+                    help="Passed through to train_prism_breath.py; empty keeps its default (mae).")
+    ap.add_argument("--folds", default="",
+                    help="Comma-separated fold indices to run, e.g. '0,1,2'. Default: all five. "
+                         "Use to split the CV across at most TWO concurrent processes on this box -- "
+                         "a 4-way split has triggered a GPU TDR reset (exit 0x40010004).")
     ap.add_argument("--decision-loss-weight", type=float, default=0.0,
                     help="Tier-2c: pass through to train_prism_breath -> train PRISM with the net-benefit "
                          "decision loss (e.g. 0.3). 0 = standard PRISM (default).")
@@ -48,7 +54,11 @@ def main():
                  f"  leakage-free control:  python scripts/build_efficientphys_flow_cleanfold.py  "
                  f"(creates data/pedrr_signals_learned_clean)")
     OUT = ROOT / "outputs" / "paper_runs" / f"pedrr_kfold_{a.tag}"
-    for k in range(5):
+    folds = [int(x) for x in a.folds.split(",") if x.strip() != ""] if a.folds else list(range(5))
+    if any(k < 0 or k > 4 for k in folds):
+        sys.exit(f"[run_prism_kfold] --folds must be within 0..4, got {folds}")
+    print(f"[run_prism_kfold] running folds {folds}", flush=True)
+    for k in folds:
         fd = OUT / f"fold{k}"
         pred = fd / "test_eval" / "prism_breath_predictions.csv"
         if a.skip_existing and pred.exists():
@@ -83,6 +93,8 @@ def main():
             train_cmd += ["--encoder-pretrained", enc]
         if init_from:
             train_cmd += ["--init-from", init_from]
+        if a.selection_metric:
+            train_cmd += ["--selection-metric", a.selection_metric]
         if a.early_stop_patience:
             train_cmd += ["--early-stop-patience", a.early_stop_patience]
         if a.decision_loss_weight:

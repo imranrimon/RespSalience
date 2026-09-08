@@ -82,12 +82,35 @@ def triage_metrics(rows: List[Dict]) -> Dict[str, float]:
     negatives = tachy == 0
     sensitivity = float(np.mean(triage[positives] == 1)) if positives.any() else float("nan")
     specificity = float(np.mean(triage[negatives] == 0)) if negatives.any() else float("nan")
+
+    # Threshold-free discrimination on the clinical endpoint. Computed with a rank formulation so
+    # there is no sklearn dependency inside the training loop.
+    auroc = float("nan")
+    if positives.any() and negatives.any():
+        prob = np.asarray([row.get("tachy_prob", np.nan) for row in rows], dtype=np.float64)
+        if np.isfinite(prob).all():
+            order = np.argsort(prob, kind="mergesort")
+            ranks = np.empty(len(prob), dtype=np.float64)
+            ranks[order] = np.arange(1, len(prob) + 1, dtype=np.float64)
+            # average ranks over ties so the statistic matches the Mann-Whitney U definition
+            s = np.sort(prob)
+            i = 0
+            while i < len(s):
+                j = i
+                while j + 1 < len(s) and s[j + 1] == s[i]:
+                    j += 1
+                if j > i:
+                    ranks[order[i:j + 1]] = (i + 1 + j + 1) / 2.0
+                i = j + 1
+            n_pos, n_neg = int(positives.sum()), int(negatives.sum())
+            auroc = float((ranks[positives].sum() - n_pos * (n_pos + 1) / 2.0) / (n_pos * n_neg))
     return {
         "mae": mae,
         "rmse": rmse,
         "sensitivity": sensitivity,
         "specificity": specificity,
         "review_rate": review_rate,
+        "auroc": auroc,
     }
 
 
@@ -98,6 +121,10 @@ def collect_rows(batch: Dict, outputs: Dict[str, torch.Tensor]) -> List[Dict]:
     qhat = outputs["qhat"].detach().cpu().numpy()
     triage = outputs["triage_code"].detach().cpu().numpy()
     thresholds = outputs["threshold_bpm"].detach().cpu().numpy()
+    # The calibrated tachypnea probability is what the clinical endpoint is scored on, so carry it
+    # through to validation metrics; without it, checkpoints can only be selected on regression error.
+    tachy_prob = (outputs["tachy_prob"].detach().cpu().numpy()
+                  if "tachy_prob" in outputs else np.full(len(gt_rr), np.nan, dtype=np.float32))
     rows: List[Dict] = []
     for idx in range(len(gt_rr)):
         rows.append(
@@ -112,6 +139,7 @@ def collect_rows(batch: Dict, outputs: Dict[str, torch.Tensor]) -> List[Dict]:
                 "threshold_bpm": float(thresholds[idx]),
                 "age_months": float(age[idx]),
                 "gt_tachy": int(gt_rr[idx] >= thresholds[idx]),
+                "tachy_prob": float(tachy_prob[idx]),
             }
         )
     return rows
@@ -262,6 +290,11 @@ def main() -> int:
                              "gates which cases are retained vs referred. Only active when --decision-loss-weight>0.")
     parser.add_argument("--synth-highrr-prob", type=float, default=0.0,
                         help="per-sample prob of synth high-RR time-compression augmentation (attacks neonatal scarcity)")
+    parser.add_argument("--selection-metric", choices=["mae", "auroc", "hybrid"], default="mae",
+                        help="Validation criterion for the best checkpoint. 'mae' is the historical "
+                             "default (val MAE + 5*review_rate) and is anti-correlated with test "
+                             "tachypnea AUROC (r=+0.88 over 10 folds); 'auroc' selects on the clinical "
+                             "endpoint; 'hybrid' is endpoint-led with a light MAE term.")
     parser.add_argument("--epochs", type=int, default=20)
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--lr", type=float, default=1e-3)
@@ -435,7 +468,22 @@ def main() -> int:
                 supervise_events=args.enable_event_augmentation,
             )
 
-        composite = float(val_metrics["mae"]) + 5.0 * float(val_metrics["review_rate"])
+        # Checkpoint selection. `mae` is the historical criterion and is kept as the default so prior
+        # runs stay reproducible, but it is anti-correlated with the clinical endpoint: across ten
+        # folds, a lower selected validation MAE went with a LOWER test tachypnea AUROC (r=+0.88,
+        # p=0.0008; partial r=+0.85 controlling for fold RR spread). Selecting on regression error
+        # therefore systematically picks a worse classifier -- the same MAE-is-not-utility failure the
+        # paper argues about, occurring at model selection. `auroc` and `hybrid` select on the
+        # endpoint instead. Lower composite is always better.
+        val_auroc = float(val_metrics.get("auroc", float("nan")))
+        if args.selection_metric == "mae" or not np.isfinite(val_auroc):
+            composite = float(val_metrics["mae"]) + 5.0 * float(val_metrics["review_rate"])
+        elif args.selection_metric == "auroc":
+            composite = (1.0 - val_auroc) + 0.5 * float(val_metrics["review_rate"])
+        else:  # hybrid: endpoint-led, with a light regression term to keep the rate usable
+            composite = ((1.0 - val_auroc)
+                         + 0.02 * float(val_metrics["mae"])
+                         + 0.5 * float(val_metrics["review_rate"]))
         history.append(
             {
                 "epoch": epoch,
@@ -448,6 +496,8 @@ def main() -> int:
                 "val_specificity": val_metrics["specificity"],
                 "val_review_rate": val_metrics["review_rate"],
                 "selection_score": composite,
+                "selection_metric": args.selection_metric,
+                "val_auroc": val_auroc,
                 "freeze_encoder": freeze_encoder,
             }
         )

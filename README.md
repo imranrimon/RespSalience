@@ -1,71 +1,113 @@
-# PRISM-Breath — Non-Contact Pediatric Respiratory Screening
+# RespSalience
 
-Research code for **non-contact respiratory-rate (RR) estimation and tachypnea screening in infants**
-from RGB video (optical flow), monocular depth, and audio. Respiration lives in the 0.15–1.5 Hz band
-(~9–90 BPM). The clinical endpoint is **tachypnea by WHO age band** (≥60 BPM <2mo, ≥50 2–12mo,
-≥40 12–60mo).
+Code and analysis for **decision-aware contactless pediatric tachypnea screening**.
 
-> **Scope (honest):** validated as a tachypnea screen for infants **≥2 months** (Sens 0.71, AUROC 0.919,
-> 3-seed, calibrated), with **mandatory clinician referral for <2 months** where RGB extraction is
-> provably unreliable. Tachypnea is a screening sign, not a disease diagnosis — see limitations in
-> `docs/PRISM_BREATH_REVIEWER_CRITIQUE.md`.
+The clinical target is tachypnea by WHO age band (≥60 breaths/min under 2 months, ≥50 at 2–12 months,
+≥40 at 12–60 months) estimated from an ordinary RGB camera. The central finding is that **how the
+clinical decision is formed matters more than the architecture that produces the rate**: a model that
+emits a *distribution over respiratory rates* and decides by integrating the mass above the age
+threshold outperforms a multimodal regression system that is otherwise strictly larger.
 
-## Headline results
-- **PRISM beats 4 published extractors on tachypnea AUROC** (0.879 vs 0.73–0.76, all p≤0.002) at
-  comparable RR-MAE — *raw MAE ≠ clinical utility*.
-- **Neonatal fix:** RGB flow physically saturates ~35 BPM for true 60–80; **radar recovers it** —
-  MAE 0.00 on a thorax phantom (20–80 BPM) and **MAE 1.76 (r=0.96) on 50 real children**.
-- **Lean model** (drop prototype bank + codebook + het head) = full PRISM (all n.s.) — an
-  ablation-justified, Occam-clean design. SSL pretraining *is* load-bearing (Sens +0.116).
-- Calibrated (ECE 0.064), positive net benefit on decision-curve analysis, no sex disparity.
+| model | role | RR-MAE ↓ | tachypnea AUROC ↑ |
+|---|---|---|---|
+| **RespSalience** | proposed | **5.21** | **0.935** |
+| PRISM-Breath | regression baseline | 6.42 | 0.826 |
+| Best published extractor (DeepPhys) | prior work | 5.62 | 0.777 |
 
-See `docs/PRISM_BREATH_RESULTS_TABLES.md` (6 tables) and `docs/PRISM_BREATH_PAPER_POSITIONING.md`.
+*n = 298 matched subjects, subject-disjoint five-fold CV, corrected age labels. RespSalience is the
+three-seed ensemble. All six paired comparisons significant at p < 10⁻⁴.*
 
-## Repository structure
-```
-prism-breath/
-├── src/                     # importable package (prism_breath)
-│   ├── core/                # models: prism_breath_model, fusion, signal_processor, diagnosis...
-│   ├── utils/               # dataset registry, ground-truth, dataset paths
-│   ├── config/              # YAML configs (root-relative paths by design)
-│   └── ui/  api/            # Streamlit dashboard, FastAPI
-├── scripts/                 # run-from-root CLIs (paths are project-root-relative — run from repo root)
-├── tests/                   # standalone self-checking test_*.py (no pytest suite)
-├── docs/                    # design docs, runbooks, reviewer critique, RESULTS_TABLES, POSITIONING
-├── manuscript/             # IEEE MTT paper (Overleaf-ready): prism_breath.tex + .bib + 600-DPI figs
-├── tools/                   # one-off utilities
-├── data/ outputs/ external/ Paper/  # gitignored (datasets, checkpoints, vendored 3rd-party, copyrighted ref PDFs)
-├── pipeline.py              # single-video CLI / dashboard / vitals entry point
-├── pyproject.toml  requirements.txt  environment.yml   # environment.yml is authoritative (conda resp_env)
-```
+RespSalience is the **simpler** of our two models: one channel, no multimodal fusion, no auxiliary
+components. That is the point of the paper, not an accident.
 
-### Scripts by category (organizing scheme — paths kept flat by design; see below)
-Scripts stay flat in `scripts/` **on purpose**: they resolve the project root via
-`Path(__file__).resolve().parents[1]` and import each other via `sys.path`, so moving them into
-subfolders would break the pipeline. They are organized *logically* as:
-- **Manifests/data:** `build_respiratory_benchmark_manifest`, `make_kfold_manifests`
-- **Extraction:** `extract_benchmark_signals`, `build_learned_flow_signals`, `build_tscan_flow_signals`,
-  `train_learned_extractor_pedrr`, `radar_tof_rr`
-- **Training:** `pretrain_prism_breath`, `train_prism_breath`
-- **Eval/CV:** `evaluate_prism_breath`, `run_efficientphys_cv`, `run_extractor_cv`, `reseed_deepphys_fold3`,
-  `calibrate_conformal`, `age_conditional_conformal`
-- **Analysis:** `clinical_endpoint_eval`, `compare_clinical_models`, `generate_prism_breath_paper_tables`
+## What this repository is
 
-## Getting started
+Research code accompanying the manuscript in [`manuscript/`](manuscript/). It is a reproduction
+artifact, not a deployable medical device. **Tachypnea is a screening sign, not a diagnosis**, and
+nothing here is cleared for clinical use.
+
+## Reproducing the paper
+
+Every quantitative claim in the manuscript is re-derived from stored artifacts by a single command:
+
 ```bash
-conda env create -f environment.yml && conda activate resp_env   # authoritative, pinned (torch 2.8 cu129)
-# Single-video CLI
-python pipeline.py --mode cli --video <path> --age <months>
-# PRISM-Breath pipeline (run from repo root):
-python scripts/build_respiratory_benchmark_manifest.py
-python scripts/extract_benchmark_signals.py --manifest <split.json> --output data/prism_breath_signals
-python scripts/pretrain_prism_breath.py --signal-dir data/prism_breath_signals ...
-python scripts/train_prism_breath.py --model-variant prism_lean ...      # prism_lean = the shippable model
-python scripts/evaluate_prism_breath.py --checkpoint <best.pt> --manifest <split.json> ...
+python scripts/verify_manuscript_claims.py
 ```
-Full runnable flags: `docs/PRISM_BREATH_PIPELINE.md`. Dashboard: `streamlit run src/ui/dashboard.py`.
 
-## Notes
-- **Run scripts from the repo root** — configs use root-relative paths.
-- `external/` is vendored third-party (air-400, Infant-Respiration-Estimation, pyflow) — **do not edit**.
-- `data/`, `outputs/`, `external/` are gitignored; weights (`*.pth/*.pt`) are not versioned.
+It prints each claim beside the value recomputed from the underlying per-fold predictions and exits
+non-zero on any mismatch. At the time of writing: **53 claims checked, 53 match.**
+
+The table below maps each result in the paper to the command that produces it.
+
+| Paper element | Command |
+|---|---|
+| `tab:main` — proposed model vs prior work | `python scripts/verify_manuscript_claims.py` |
+| `tab:headline` — proposed vs baseline, per age band | `python scripts/train_resp_salience_ssl.py --seed {0,1,2} --kfold pedrr_kfold_main332 --tag _ssl332` |
+| `tab:selmatrix` — selection rule × model family | `python scripts/selection_matrix.py` |
+| `tab:sota` — five published extractors | `python scripts/full_metric_comparison.py --deepphys100 --prism-run outputs/paper_runs/pedrr_kfold_main332` |
+| `tab:abl` — ablation of the regression baseline | `python scripts/regenerate_supplementary_tables.py --prism-run pedrr_kfold_main332` |
+| `tab:ceiling` — reference-standard sensitivity analysis | `python scripts/label_noise_ceiling.py` |
+| `sec:age` — age-conditional read-out | `python scripts/operating_point_readout.py --run-root outputs/paper_runs/pedrr_kfold_salience_ssl332_seed0` |
+| `sec:age` — selective read-out (deployed rule) | `python scripts/hybrid_readout.py` |
+| `sec:extval` — external replication (negative) | `python scripts/nchsdb_headswap.py` and `python scripts/nchsdb_framing.py --seeds 5` |
+| `tab:crossdata` — cross-dataset generalization | `python scripts/run_expanded_paper_baselines.py --preset paper_full` |
+| Subgroup / fairness | `python scripts/subgroup_fairness.py --deepphys100 --prism-run outputs/paper_runs/pedrr_kfold_main332` |
+| Calibration and conformal coverage | `python scripts/calibration_diagnostics.py --deepphys100` |
+
+See [`docs/REPRODUCTION.md`](docs/REPRODUCTION.md) for the full pipeline, including signal extraction
+and training from raw video.
+
+## Two findings worth reading the code for
+
+**Checkpoint selection is part of the decision rule.** Selecting a checkpoint by validation regression
+error rather than by the clinical endpoint measurably changes the endpoint, and the published
+extractors we compare against were never checkpoint-selected at all — their drivers evaluate whatever
+weights remain resident after training returns. `scripts/identify_baseline_checkpoint.py` verifies this
+bit-exactly; `scripts/reselect_baseline_checkpoints.py` gives every model the same treatment.
+
+**A regress-then-threshold pipeline cannot dissociate regression accuracy from clinical utility**,
+because its ranking *is* its rate estimate. This is why RR-MAE ranks the five published extractors
+almost perfectly (Spearman ρ = −0.90) yet fails across a change of objective. `scripts/selection_matrix.py`
+demonstrates it by intervention.
+
+## Environment
+
+Conda environment `resp_env`, Python 3.13, CUDA build. `environment.yml` is the authoritative pinned
+spec (note: UTF-16 encoded); `requirements.txt` is a minimal pip subset.
+
+```bash
+conda env create -f environment.yml
+conda activate resp_env
+```
+
+## Data
+
+None of the datasets are redistributed here.
+
+| Dataset | Role | Access |
+|---|---|---|
+| Pediatric-RR-332 | primary clinical cohort | Mendeley `72dd3rkttf` (public) |
+| NCH Sleep DataBank | external replication | PhysioNet credentialed access |
+| AIR-125 / AIR-400 | cross-dataset generalization | from the original authors |
+
+The Pediatric-RR reference rate is a **multi-reader video expert panel consensus**, not a single
+bedside count — 40.4% of released values are exact half-integers with no quarter-values, the signature
+of a two-reader mean. This matters for how the reference standard is described.
+
+## Repository layout
+
+```
+src/respsalience/     importable library (models, signal processing, evaluation)
+scripts/              entry points: extraction, training, evaluation, analysis
+manuscript/           LaTeX sources, figures, bibliography
+docs/                 pipeline documentation and design notes
+tools/                developer utilities
+```
+
+## Citation
+
+See [`CITATION.cff`](CITATION.cff).
+
+## License
+
+See [`LICENSE`](LICENSE).

@@ -17,7 +17,12 @@ warnings.filterwarnings("ignore")
 import numpy as np, pandas as pd
 from sklearn.metrics import roc_auc_score
 
-RUN = "outputs/paper_runs/pedrr_kfold_learned"
+import argparse
+# The previous hardcoded default was a 297-subject run while the appendix text described the
+# analysis as covering 332 subjects; the run is now explicit.
+_ap = argparse.ArgumentParser()
+_ap.add_argument("--run", default="outputs/paper_runs/pedrr_kfold_main332")
+RUN = _ap.parse_args().run
 paths = sorted(glob.glob(os.path.join(RUN, "fold*", "test_eval", "prism_breath_predictions.csv")))
 df = pd.concat([pd.read_csv(p) for p in paths], ignore_index=True)
 df["clip"] = df["subject_id"].astype(str) + "_" + df["video_id"].astype(str)

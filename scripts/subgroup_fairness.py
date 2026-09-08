@@ -10,7 +10,7 @@ import os, sys, glob, json, warnings
 warnings.filterwarnings("ignore")
 import numpy as np, pandas as pd
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from full_metric_comparison import RUNS, point_metrics, subj_boot
+from full_metric_comparison import RUNS, PRISM, point_metrics, subj_boot
 
 SHOW = ["AUROC", "Sp@Se90", "Se@Sp90", "Sens", "MAE"]
 
@@ -59,7 +59,11 @@ def report(title, data, assign, order):
 
 if __name__=="__main__":
     import argparse
-    ap=argparse.ArgumentParser(); ap.add_argument("--deepphys100",action="store_true"); a=ap.parse_args()
+    ap=argparse.ArgumentParser(); ap.add_argument("--deepphys100",action="store_true")
+    ap.add_argument("--prism-run",default=None,help="override the PRISM run root; the imported "
+                    "default is a 297-subject run predating the regenerated main run")
+    a=ap.parse_args()
+    if a.prism_run: RUNS[PRISM]=a.prism_run
     if a.deepphys100: RUNS["DeepPhys"]="outputs/paper_runs/pedrr_kfold_deepphys_100ep"
     data={m:load_run_age(r) for m,r in RUNS.items()}
     common=set.intersection(*[set(d["clip_key"]) for d in data.values()])

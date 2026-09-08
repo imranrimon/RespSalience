@@ -28,13 +28,25 @@ def band_of(a):
     return "12-60mo"
 
 
-def feats(df):
+def has_std(df):
+    """Whether the heteroscedastic aleatoric std is populated in this split."""
+    return "rr_std" in df.columns and bool(df["rr_std"].abs().sum() > 0)
+
+
+def feats(df, use_std):
+    """Feature matrix with an EXPLICIT schema.
+
+    `use_std` must be decided by the caller and reused for every split scored by
+    the same fit: rr_std can be populated in one split and all-zero in another,
+    which previously changed the column count between fitting and scoring.
+    """
     iw = (df.get("interval_upper_bpm", 0) - df.get("interval_lower_bpm", 0)).abs()
     dis = df.get("disagreement_score", pd.Series(np.zeros(len(df))))
     margin = (df.pred_rr_bpm - df.threshold_bpm).abs()
     cols = [dis.values, iw.values, margin.values]
-    if "rr_std" in df.columns and df["rr_std"].abs().sum() > 0:   # heteroscedastic aleatoric std, if trained
-        cols.append(df["rr_std"].values)
+    if use_std:
+        std = df["rr_std"].values if "rr_std" in df.columns else np.zeros(len(df))
+        cols.append(std)
     return np.column_stack(cols).astype(float)
 
 
@@ -53,23 +65,33 @@ def main():
     ap.add_argument("--run-root", default="outputs/paper_runs/pedrr_kfold_learned")
     args = ap.parse_args()
     root = Path(args.run_root)
-    vX, vy, tests = [], [], []
+    # Fit the risk model PER FOLD on that fold's own validation split, then score
+    # only that fold's test subjects. Pooling every fold's validation rows and
+    # scoring the pooled test set leaks: across this run the validation splits
+    # draw from just 49 distinct subjects, ~10 of which sit in each test fold.
+    tests, betas = [], []
     for fold in sorted(root.glob("fold*")):
         vp = fold / "val_eval" / "prism_breath_predictions.csv"
         tp = fold / "test_eval" / "prism_breath_predictions.csv"
         if not (vp.exists() and tp.exists()):
             continue
         val, test = pd.read_csv(vp), pd.read_csv(tp)
-        vX.append(feats(val)); vy.append((val.gt_rr_bpm - val.pred_rr_bpm).abs().values)
+        leak = set(val.subject_id.astype(str)) & set(test.subject_id.astype(str))
+        if leak:
+            raise SystemExit(f"{fold.name}: {len(leak)} subjects appear in both val and test; refusing to fit.")
+        use_std = has_std(val) and has_std(test)
+        Xv = feats(val, use_std); yv = (val.gt_rr_bpm - val.pred_rr_bpm).abs().values
+        mu, sd = Xv.mean(0), Xv.std(0) + 1e-9
+        Xn = (Xv - mu) / sd
+        beta, *_ = np.linalg.lstsq(np.column_stack([np.ones(len(Xn)), Xn]), yv, rcond=None)
+        betas.append(beta)
+        Xt = (feats(test, use_std) - mu) / sd
+        test = test.copy()
+        test["risk"] = beta[0] + Xt @ beta[1:]
         tests.append(test)
-    Xv = np.vstack(vX); yv = np.concatenate(vy)
-    mu, sd = Xv.mean(0), Xv.std(0) + 1e-9
-    Xn = (Xv - mu) / sd
-    beta, *_ = np.linalg.lstsq(np.column_stack([np.ones(len(Xn)), Xn]), yv, rcond=None)  # risk = residual proxy
 
     test = pd.concat(tests, ignore_index=True)
-    Xt = (feats(test) - mu) / sd
-    test["risk"] = beta[0] + Xt @ beta[1:]
+    beta = np.mean(betas, axis=0)  # reported only; each fold was scored by its own fit
     test["band"] = test.age_months.apply(band_of)
     test["abs_err"] = (test.gt_rr_bpm - test.pred_rr_bpm).abs()
     test = test.sort_values("risk").reset_index(drop=True)

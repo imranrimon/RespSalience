@@ -1,0 +1,120 @@
+% ============================================================================
+% PRISM-Breath -- draft subsections on decision-guaranteed deferral.
+% Numbers from outputs/deferral_policy/pedrr_kfold_v3/ (n=332, 84 positives, prevalence 0.253; age-corrected labels),
+% produced by scripts/cost_aware_deferral.py and scripts/prevalence_shift_audit.py.
+% Replicated on pedrr_kfold_learned.
+%
+% BLOCK A -> insert in Methods, after "\subsection{Age-conditional conformal triage}"
+% BLOCK B -> insert in Results, after "\subsection{Calibration, decision curve, and equity}"
+% ============================================================================
+
+
+% ------------------------- BLOCK A: METHODS --------------------------------
+\subsection{From coverage guarantees to decision guarantees}\label{sec:decguar}
+The Mondrian rule above guarantees \emph{interval coverage}: the true rate falls inside
+$[\hat r - \hat q^{(b)}, \hat r + \hat q^{(b)}]$ with probability $1-\alpha$. That is not the quantity a
+screen acts on. What a health worker needs is a guarantee attached to the \emph{decision}---that a case
+the system clears is very unlikely to be tachypneic, and that a case it flags is likely to be. Coverage
+implies neither. We therefore compare four deferral policies, all mapping a case to
+$\{\textsc{normal}, \textsc{alert}, \textsc{refer}\}$ and all calibrated under an identical
+leakage-safe protocol.
+
+\textbf{Calibration protocol.} Each test fold is calibrated on the pooled out-of-fold predictions of the
+remaining folds. Because the test folds are subject-disjoint, the calibration subjects are disjoint from
+the evaluated fold by construction ($n\!\approx\!265$, $\approx\!68$ tachypneic); this is the
+cross-conformal (CV$+$) construction, with calibration predictions coming from sibling fold models. The
+per-fold validation splits are far too small to calibrate a decision rule---across the whole run they
+contain only $49$ distinct subjects---so pooling them, which would additionally leak calibration subjects
+into other folds' test sets, is not an option.
+
+\textbf{Policies.} (i) \emph{Coverage}: the age-conditional rule of Sec.~\ref{sec:calib}, referring when
+the interval straddles $\tau_{\text{age}}$. (ii) \emph{Cost-aware}: the two decision thresholds are chosen
+to minimise an explicit expected clinical cost, with a missed tachypneic case weighted $10\times$ a false
+alert and a referral $0.3\times$ (escalating for a second look is cheaper than an unnecessary workup); a
+sweep over these ratios is reported in the supplement. (iii) \emph{Plug-in PPV/NPV}: thresholds chosen so
+the \emph{empirical} PPV of the alert group and NPV of the normal group meet targets on calibration.
+(iv) \emph{Certified PPV/NPV}: the same targets, but admissible only if a Bonferroni-corrected one-sided
+Clopper--Pearson lower bound clears the target at level $\delta=0.10$, following Learn-then-Test. The
+\textsc{alert} group depends only on the upper threshold and the \textsc{normal} group only on the lower
+one, so the two guarantees form two independent ordered families and are certified by fixed-sequence
+testing with $\delta/2$ each; a Bonferroni correction over all $820$ threshold pairs is also valid but so
+conservative that it certifies nothing at this prevalence. When no threshold pair is certifiable the band
+is referred in full rather than auto-decided---a refusal to promise, not a silent default.
+
+\textbf{Prevalence-robust certification.} PPV and NPV are prevalence-dependent and move in opposite
+directions, so a certificate issued at the calibration prevalence says nothing once deployment prevalence
+moves. Writing $\pi$ for deployment prevalence and conditioning on the label,
+\begin{equation}
+\text{PPV}(\pi)=\frac{\pi\,\text{sens}}{\pi\,\text{sens}+(1-\pi)\,\text{fpr}},\qquad
+\text{NPV}(\pi)=\frac{(1-\pi)\,\text{spec}}{(1-\pi)\,\text{spec}+\pi\,\text{fnr}},
+\end{equation}
+where the class-conditional rates are invariant under label shift. Substituting a lower bound on
+$\text{sens}$/$\text{spec}$ and an upper bound on $\text{fpr}$/$\text{fnr}$ ($\delta/4$ each) and
+evaluating at the worst prevalence in a declared deployment range $[\pi_{\min},\pi_{\max}]$---$\pi_{\min}$
+for PPV, $\pi_{\max}$ for NPV---yields a certificate that survives the shift.
+
+
+% ------------------------- BLOCK B: RESULTS --------------------------------
+\subsection{Do the triage decisions carry a guarantee?}\label{sec:guarantee}
+Table~\ref{tab:deferral} compares the four policies at targets PPV~$\ge0.60$ and NPV~$\ge0.90$. Three
+findings matter for deployment.
+
+\textbf{A coverage guarantee is not a decision guarantee.} The coverage policy refers $40.4\%$ of cases
+and reaches NPV $0.931$ overall, but it \emph{auto-clears $12.3\%$ of truly tachypneic infants}, and its
+NPV exceeds $0.90$ in only one of three age bands ($<$2mo $0.833$, 2--12mo $0.887$, 12--60mo $0.988$).
+Coverage is achieved on the rate; the decision inherits no guarantee from it.
+
+\textbf{Plug-in targeting over-promises.} Selecting thresholds on empirical PPV/NPV looks by far the most
+efficient option---only $15.1\%$ referral---and its pooled NPV of $0.917$ appears to satisfy the target.
+It does not: the guarantee fails in two of the three bands ($<$2mo $0.895$, 2--12mo $0.867$), and it
+auto-clears $21.0\%$ of tachypneic infants, the worst of any policy. An aggregate guarantee can hold while
+the subgroups that most need it are violated. Finite-sample certification removes the failure---the
+certified policy satisfies its target in every band it decides in---but the price is a referral rate of
+$83.7\%$, because certification at this calibration size can only license a small decision group.
+
+\textbf{Certifying at one prevalence buys no robustness to shift.} Class-conditional rates give an exact
+break-even prevalence beyond which each guarantee is void (last column of Table~\ref{tab:deferral}; an
+analytic curve and a within-band subject bootstrap agree to $\le\!0.005$). Every policy calibrated at the
+cohort prevalence of $0.253$ is void within $2$--$12$ points of it, and the \emph{certified} policy is the
+most fragile of all, void above $26.5\%$. At a high-burden prevalence of $0.40$ the coverage policy silently
+clears $49.1$ truly tachypneic infants per $1000$ screened, against $31.9$ at the prevalence it was
+validated at. Certifying instead on the class-conditional rates repairs this: for the 12--60mo band the
+guarantee is certifiable in all five folds for deployment prevalence up to $10\%$, at a referral rate of
+only $4.4\%$, and the held-out data honour it (NPV $0.922$ at $\pi=0.10$; empirical break-even $12.8\%$).
+The honest limit is sample size, and specifically the number of \emph{positive} calibration cases: the same
+certificate is obtained in only one of five folds for 2--12mo and never for $<$2mo, and no calibration set
+can certify NPV~$\ge0.95$ in the 2--12mo band because the attainable NPV there is $0.920$. We therefore
+report the guarantee we can support---a prevalence-robust NPV~$\ge0.90$ for children over one year in
+low-prevalence screening---rather than a target the data do not license.
+
+\begin{table}[!t]
+\caption{Deferral policies under an identical leakage-safe calibration ($n{=}332$, prevalence $0.253$,
+targets PPV~$\ge0.60$/NPV~$\ge0.90$, $\delta{=}0.10$, age-corrected labels). ``Cleared'' is the fraction of truly tachypneic
+infants the policy auto-clears; ``Bands'' counts age bands whose held-out NPV meets the target among those
+the policy decides in; ``Void above'' is the deployment prevalence at which the NPV target stops holding.}
+\label{tab:deferral}\centering\small
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{@{}lcccccc@{}}\toprule
+Policy & Refer & Sens & NPV & Cleared & Bands & Void above\\\midrule
+Coverage (Sec.~\ref{sec:calib}) & $0.404$ & $0.636$ & $0.931$ & $0.123$ & 1/3 & $37.1\%$\\
+Cost-aware & $0.663$ & $0.897$ & $0.939$ & $0.061$ & 1/2 & $29.3\%$\\
+Plug-in PPV/NPV & $0.151$ & $0.771$ & $0.917$ & $0.210$ & 1/3 & $26.7\%$\\
+Certified (LTT) & $0.837$ & $0.571$ & $0.936$ & $0.050$ & 1/1 & $26.5\%$\\\midrule
+\multicolumn{7}{@{}l}{\emph{Prevalence-robust certificate, 12--60mo, declared range $\pi\le0.10$}}\\
+\quad Certified 5/5 folds & $0.044$ & --- & $0.922^{\dagger}$ & --- & 1/1 & $12.8\%$\\\bottomrule
+\end{tabular}
+\vspace{2pt}
+{\footnotesize $^{\dagger}$Held-out NPV re-expressed at $\pi{=}0.10$, the prevalence the certificate
+claims; scoring it at the cohort's own $0.253$ would answer a different question.}
+\end{table}
+
+
+% ------------------------- OPTIONAL: DISCUSSION -----------------------------
+% Suggested addition to \textbf{Clinical translation.} in Sec.~\ref{sec:disc}:
+%
+% The triage layer is where a screen becomes a decision, and it is the layer least protected by the
+% metrics usually reported. Our audit shows a policy can hold its aggregate guarantee while violating it
+% in the age bands that carry the clinical risk, and that a certificate issued at the development
+% prevalence expires almost immediately outside it. Reporting the deployment prevalence range over which
+% a decision guarantee is certified---and refusing to auto-decide outside it---is a cheap and, we argue,
+% necessary addition to how contactless screens are reported.

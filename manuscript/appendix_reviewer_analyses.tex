@@ -6,7 +6,8 @@ A data audit found that nine true age-$0$ newborns carried a stale cached \textt
 falsy-zero default at signal extraction), which mis-banded them ($<$2mo $\to$ 2--12mo) and applied the wrong
 WHO threshold ($\ge 50$ instead of $\ge 60$), producing two incorrect tachypnea labels. The manifest age
 (from the Stata metadata) is authoritative and now takes precedence in the data loader. The correction is
-small and favourable: pooled AUROC $0.879 \to 0.881$, tachypnea prevalence $0.259 \to 0.253$ (matching the
+small and favourable: on the original predictions pooled AUROC moved $0.879 \to 0.881$ and tachypnea
+prevalence $0.259 \to 0.253$ (matching the
 source metadata exactly), and the $<2$-month band grows to its correct size ($n{=}29 \to 38$, positives
 $8 \to 10$; AUROC $0.619 \to 0.668$). All analyses below use the corrected labels.
 
@@ -28,9 +29,13 @@ leakage-free flow). The direct leaky-versus-leakage-free contrast \emph{within} 
 (DeLong $p=0.89$), reproducing the $+0.019$ leakage control measured on the original predictions
 (Sec.~\ref{app:impl})---both comfortably within noise. Independent seeds of this configuration on these subjects span
 AUROC $0.83$--$0.89$, so the ${\sim}0.02$ gap between a fresh retrain and the reported operating point is
-ordinary run-to-run variance rather than a systematic effect of the correction. We therefore retain the
-full $332$-subject value ($0.881$) as the headline: on the original predictions the age-label fix moves
-pooled AUROC by only $+0.002$, and flow-extractor leakage by an insignificant $+0.005$ to $+0.019$.
+ordinary run-to-run variance rather than a systematic effect of the correction. The headline reported in
+this paper is not a retained legacy value: the main configuration was retrained end-to-end on the full
+$332$-subject learned-flow cohort and scores AUROC $0.827$ (RR-MAE $6.22$), which is what every table
+here reports. That is ${\sim}0.05$ below the value in our earlier draft, and the gap is explained in
+Section~\ref{app:selection}: checkpoints were selected on validation regression error, a criterion we
+show to be misaligned with the clinical endpoint. Neither the age-label fix ($+0.002$) nor
+flow-extractor leakage ($+0.005$ to $+0.019$) accounts for it.
 
 \subsection{Near-Threshold Stratification}
 For a screen, the decisive cases are those near the WHO cutoff. Stratifying subjects by the distance of
@@ -49,11 +54,11 @@ tachypnea threshold, corrected pediatric-332.}
 \toprule
 $|\mathrm{RR}-\tau|$ & $n$ & Prev. & Sens & Spec & AUROC & MAE & \#FN\\
 \midrule
-$<5$ bpm     & 64  & 0.39 & 0.68 & 0.72 & 0.743 & 5.23 & 8\\
-$5$--$10$ bpm & 82  & 0.21 & 0.47 & 0.91 & 0.710 & 5.82 & 9\\
-$\ge 10$ bpm & 186 & 0.23 & 0.71 & 0.97 & \textbf{0.946} & 6.68 & 12\\
+$<5$ bpm     & 64  & 0.39 & 0.44 & 0.74 & 0.656 & 4.85 & 14\\
+$5$--$10$ bpm & 82  & 0.21 & 0.47 & 0.91 & 0.708 & 5.44 & 9\\
+$\ge 10$ bpm & 186 & 0.23 & 0.64 & 0.98 & \textbf{0.881} & 7.04 & 15\\
 \midrule
-All          & 332 & 0.25 & 0.66 & 0.92 & 0.881 & 6.19 & 29\\
+All          & 332 & 0.25 & 0.55 & 0.92 & 0.827 & 6.22 & 38\\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -98,12 +103,20 @@ Axis & Group & $n$ & pos & Sens & Spec & AUROC\\
 \end{tabular}
 \end{table*}
 
-\subsection{Lean-Model Non-Inferiority}
-Against the leaner variant, PRISM-full attains tachypnea AUROC $0.881$ versus $0.867$ (paired difference
-$+0.014$, subject-bootstrap 95\% CI $[-0.007,+0.035]$, $B{=}5000$, $n{=}332$). Because the upper confidence
-bound ($0.035$) exceeds the pre-specified non-inferiority margin of $0.02$, non-inferiority of the lean
-variant is \emph{not} established at this sample size, although the two models do not differ significantly
-(the CI includes $0$). This is a more honest statement than ``the lean model matches the full model.''
+\subsection{The Lean Model Is Not Merely Non-Inferior}
+We pre-registered this as a non-inferiority test and it returned something stronger, in the opposite
+direction to our expectation. On the regenerated run the \emph{lean} variant---which drops the prototype
+bank, the codebook and the heteroscedastic head---attains tachypnea AUROC $0.866$ against the full
+model's $0.826$ (paired difference $-0.040$ in favour of lean, subject-bootstrap 95\% CI
+$[-0.078,-0.004]$, $B{=}5000$, $n{=}297$ matched; paired DeLong $p=0.029$). The lean model is therefore
+not merely non-inferior: on this cohort it is significantly \emph{better}.
+
+Two other variants also exceed the full configuration (Table~\ref{tab:s4}): flow-only with depth and
+audio disabled reaches $0.890$ ($p=3{\times}10^{-4}$) and frequency-forward fusion reaches $0.870$
+($p=0.033$). We report this rather than presenting the full model as the best of its family, because it
+is the same lesson the component isolation and the ablations already gave, arrived at independently:
+the added fusion machinery is not carrying the clinical performance, and on this cohort it costs some.
+A reader should take the lean configuration, not the full one, as the deployable model.
 
 \subsection{Conformal Coverage Is Age-Miscalibrated}
 Table~\ref{tab:conformal_cov} evaluates PRISM's pooled conformal rate intervals (nominal $1-\alpha=0.80$).

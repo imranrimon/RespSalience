@@ -1,13 +1,15 @@
 %% appendix_evals.tex -- paste-in fragment (\input into prism_breath_supplementary.tex).
 %% Requires amsmath, array, booktabs, amssymb, multirow (already loaded by the supplement).
 %% All numbers computed on the cached pedrr 5-fold PRISM-Breath predictions
-%% (outputs/paper_runs/pedrr_kfold_learned), pooled to 332 subject-level cases.
+%% (outputs/paper_runs/pedrr_kfold_main332), pooled to 332 subject-level cases, under the
+%% CORRECTED age labels (nine neonates carried a stale age_months=6; 84 positives, not 86).
+%% Regenerate with: python scripts/regenerate_appendix_evals.py --prism-run pedrr_kfold_main332
 
 \section{Failure-Mode Analysis of Tachypnea Misclassifications}
 \label{sec:failure_mode}
 We audit where the WHO decision rule ($\hat r \ge \tau_{\text{age}}$) fails on the pooled five-fold set
-(332 subjects, 86 tachypneic). The rule yields 57 true positives, 29 false negatives (missed tachypnea),
-21 false positives, and 225 true negatives (Sens $0.66$, Spec $0.91$). Table~\ref{tab:fail_means}
+(332 subjects, 84 tachypneic). The rule yields 46 true positives, 38 false negatives (missed tachypnea),
+19 false positives, and 229 true negatives (Sens $0.55$, Spec $0.92$). Table~\ref{tab:fail_means}
 contrasts, for each case class, the mean of five deployment-time reliability proxies plus age;
 Table~\ref{tab:fail_tertile} stratifies the miss (false-negative) rate among the 86 positives by proxy
 tertile.
@@ -20,39 +22,43 @@ for completeness only.}
 \label{tab:fail_means}\centering\small
 \begin{tabular}{@{}lcccc@{}}\toprule
 Proxy & TP & FN & FP & Overall\\\midrule
-Disagreement            & 0.630 & 0.775 & 0.678 & 0.844 \\
-Min.\ modality qual.$^\dagger$ & 0.000 & 0.000 & 0.000 & 0.007 \\
-Apnea prob.             & 0.690 & 0.636 & 0.654 & 0.641 \\
-Motion prob.            & 0.122 & 0.254 & 0.194 & 0.309 \\
-$|\hat r-\tau|$ (br/min) & 9.56 & 11.11 & 2.63 & 11.20 \\
-Age (months)            & 14.4 & 6.0 & 23.0 & 18.2 \\\midrule
-$n$ (subjects)          & 57 & 29 & 21 & 332 \\\bottomrule
+Disagreement            & 0.821 & 0.582 & 0.683 & 0.500 \\
+Min.\ modality qual.$^\dagger$ & 0.000 & 0.000 & 0.000 & 0.000 \\
+Apnea prob.             & 0.185 & 0.283 & 0.229 & 0.314 \\
+Motion prob.            & 0.578 & 0.581 & 0.573 & 0.571 \\
+$|\hat r-\tau|$ (br/min) & 9.07 & 8.26 & 4.36 & 10.77 \\
+Age (months)            & 15.6 & 6.7 & 22.8 & 18.0 \\\midrule
+$n$ (subjects)          & 46 & 38 & 19 & 332 \\\bottomrule
 \end{tabular}
 \end{table}
 
 \begin{table}[!t]
-\caption{Fraction of the 86 tachypneic subjects missed (false negative), by proxy tertile. Each
-tertile holds 28--29 positives (low$/$mid$/$high $=29/28/29$).}
+\caption{Fraction of the 84 tachypneic subjects missed (false negative), by proxy tertile. Each
+tertile holds 28 positives.}
 \label{tab:fail_tertile}\centering\small
 \begin{tabular}{@{}lccc@{}}\toprule
 Stratifier & Low & Mid & High\\\midrule
-Motion prob.      & 0.00 & 0.32 & 0.69 \\
-Apnea prob.       & 0.76 & 0.25 & 0.00 \\
-Disagreement      & 0.17 & 0.36 & 0.48 \\
-$|\hat r-\tau|$   & 0.28 & 0.39 & 0.34 \\\bottomrule
+Motion prob.      & 0.29 & 0.50 & 0.57 \\
+Apnea prob.       & 0.11 & 0.46 & 0.79 \\
+Disagreement      & 0.71 & 0.43 & 0.21 \\
+$|\hat r-\tau|$   & 0.50 & 0.43 & 0.43 \\\bottomrule
 \end{tabular}
 \end{table}
 
-\noindent Two model-internal signals separate misses from caught cases most strongly among positives:
-elevated \emph{motion probability} (AUROC $0.91$ for ranking FN vs.\ TP, with a monotone dose--response of
-$0.00\!\to\!0.32\!\to\!0.69$ across tertiles) and, inversely, \emph{low apnea probability} (AUROC $0.08$).
-Motion is the physiologically interpretable and actionable driver: missed infants are also younger
-(mean $6.0$ vs.\ $14.4$ months for TP), consistent with the neonatal frontier. Crucially, near-threshold
-ambiguity is \emph{not} the cause of misses: the miss rate is essentially flat across $|\hat r-\tau|$
-tertiles ($0.28/0.39/0.34$) and false negatives sit \emph{farther} below threshold than true positives
-($11.1$ vs.\ $9.6$ breaths/min). Misses are therefore gross under-counts---the known RGB saturation on fast,
-shallow breathing---rather than borderline calls, which argues for motion-gated abstention rather than
-threshold retuning.
+\noindent The strongest model-internal predictor of a miss is the \emph{apnea probability}
+(AUROC $0.85$ for ranking FN above TP, with a monotone dose--response of
+$0.11\!\to\!0.46\!\to\!0.79$ across tertiles): the head that fires on ``no detectable breathing'' is
+firing, in part, on breathing too fast and shallow to register---which is the same under-counting
+failure seen in the neonatal band, surfaced by a different head. Motion probability is a much weaker
+signal (AUROC $0.63$) and, notably, cross-modal \emph{disagreement} points the wrong way entirely
+(AUROC $0.21$; miss rate \emph{falls} $0.71\!\to\!0.21$ across its tertiles), which is consistent with
+the risk--coverage result that disagreement is a poor abstention signal and probability-confidence is
+the one to deploy. Two findings are unchanged from our earlier analysis and are the robust ones: missed
+infants are markedly younger (mean $6.7$ vs.\ $15.6$ months for TP; AUROC $0.76$ for ranking FN by
+youth), and near-threshold ambiguity is \emph{not} the cause of misses---the miss rate is flat across
+$|\hat r-\tau|$ tertiles ($0.50/0.43/0.43$; AUROC $0.46$, i.e.\ no signal). Misses are therefore gross
+under-counts, not borderline calls, which argues for age-conditional read-out rather than threshold
+retuning.
 
 \section{Edge-Deployment Cost: Parameters and CPU Latency}
 \label{sec:edge}
@@ -83,10 +89,10 @@ Peak throughput (batch $32$)    & $642$ clips/s \\\bottomrule
 \label{sec:equity}
 Table~\ref{tab:equity} reports tachypnea AUROC stratified by WHO age band and by the three real recording
 sites, with the equity gap defined as the max$-$min AUROC across groups on each axis (pooled overall AUROC
-$0.881$, $n{=}332$). The age gap ($0.280$) is large and concentrated in the $<$2\,mo band (AUROC $0.668$,
+$0.827$, $n{=}332$). The age gap ($0.265$) is large and concentrated in the $<$2\,mo band (AUROC $0.650$,
 only $10$ positives): this is the saturation of the current camera-based extractors on fast neonatal
 breathing---a limit shared by every camera method we tested, not a model-specific bias---and it motivates the
-deploy-time deferral of $<$2\,mo cases described in the main text. The cross-site gap is smaller ($0.136$),
+deploy-time deferral of $<$2\,mo cases described in the main text. The cross-site gap is smaller ($0.146$),
 weakest at the highest-acuity referral site (ICMH), indicating reasonable geographic generalization across
 three Bangladeshi care settings. Skin-tone equity is \emph{not} computable here: the pipeline consumes
 extracted one-dimensional respiratory signals rather than raw color frames, and the cohort is
@@ -100,16 +106,16 @@ $=\max-\min$ AUROC across the groups on each axis.}
 \begin{tabular}{@{}llccc@{}}\toprule
 Axis & Group & $n$ & pos & AUROC\\\midrule
 \multirow{4}{*}{Age}
- & $<$2\,mo            & 38  & 10 & 0.668 \\
- & 2--12\,mo           & 134 & 45 & 0.875 \\
- & 12--60\,mo          & 160 & 29 & 0.948 \\
+ & $<$2\,mo            & 38  & 10 & 0.650 \\
+ & 2--12\,mo           & 134 & 45 & 0.864 \\
+ & 12--60\,mo          & 160 & 29 & 0.915 \\
  \cmidrule(l){2-5}
- & \textbf{Equity gap} &     &    & \textbf{0.280} \\\midrule
+ & \textbf{Equity gap} &     &    & \textbf{0.265} \\\midrule
 \multirow{4}{*}{Site}
- & Site 1 (ICMH)       & 137 & 42 & 0.803 \\
- & Site 2 (Upazila HC) & 92  & 30 & 0.946 \\
- & Site 3 (Community)  & 103 & 12 & 0.924 \\
+ & Site 1 (ICMH)       & 137 & 42 & 0.761 \\
+ & Site 2 (Upazila HC) & 92  & 30 & 0.902 \\
+ & Site 3 (Community)  & 103 & 12 & 0.907 \\
  \cmidrule(l){2-5}
- & \textbf{Equity gap} &     &    & \textbf{0.143} \\\bottomrule
+ & \textbf{Equity gap} &     &    & \textbf{0.146} \\\bottomrule
 \end{tabular}
 \end{table}

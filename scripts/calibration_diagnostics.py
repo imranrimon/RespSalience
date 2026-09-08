@@ -72,7 +72,10 @@ if __name__=="__main__":
     if "interval_lower_bpm" in P.columns:
         print(f"\n=== (2) CONFORMAL COVERAGE (RR in interval; nominal={NOMINAL:.2f}) ===")
         for bn,lo,hi in BANDS:
-            s=P[(P["age_months"]>lo)&(P["age_months"]<hi)] if bn!="overall" else P
+            # Half-open [lo, hi) to match the WHO bands. The previous strict-on-both-sides filter
+            # silently dropped every subject whose age fell exactly on a boundary (2 or 12 months),
+            # so the per-band counts summed to 266 against an overall n of 298.
+            s=P[(P["age_months"]>=lo)&(P["age_months"]<hi)] if bn!="overall" else P
             if len(s)<10: print(f"  {bn:8s}: n={len(s)} (small)"); continue
             cov=((s["gt_rr"]>=s["interval_lower_bpm"])&(s["gt_rr"]<=s["interval_upper_bpm"])).mean()
             w=(s["interval_upper_bpm"]-s["interval_lower_bpm"]).mean()

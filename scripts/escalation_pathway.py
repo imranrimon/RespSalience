@@ -38,9 +38,23 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import roc_auc_score
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-RUN = os.path.join(ROOT, "outputs", "paper_runs", "pedrr_kfold_learned")
+# NOTE: this default is NOT evidence of which run produced the published numbers. The paper's
+# escalation figures (79%/48%/34%, 8 tachypneic neonates, n=332) come from the 332-subject main run,
+# not from this 297-subject default -- confirmed by appendix tab:escalation (n=332) and tab:retained
+# (retained AUROC 0.881). Always pass --run-root explicitly when regenerating for the manuscript.
+_DEFAULT_RUN = os.environ.get("ESCALATION_RUN", "pedrr_kfold_learned")
+_argv = sys.argv[1:]
+if "--run-root" in _argv:
+    _DEFAULT_RUN = _argv[_argv.index("--run-root") + 1]
+if "--fig-out" in _argv:
+    _FIG_NAME = _argv[_argv.index("--fig-out") + 1]
+else:
+    _FIG_NAME = "fig_escalation"
+
+RUN = _DEFAULT_RUN if os.path.isabs(_DEFAULT_RUN) else os.path.join(ROOT, "outputs", "paper_runs", _DEFAULT_RUN)
 CFG = os.path.join(ROOT, "src", "config", "age_conditional_conformal.json")
-FIG = os.path.join(ROOT, "manuscript", "fig_escalation")
+FIG = os.path.join(ROOT, "manuscript", _FIG_NAME)
+print(f"[escalation_pathway] run-root = {RUN}", flush=True)
 ALPHA = 0.20
 BANDS = ["<2mo", "2-12mo", "12-60mo"]
 STATUS = {0: "NORMAL_SAFE", 1: "TACHYPNEA_ALERT", 2: "UNCERTAIN_REVIEW"}

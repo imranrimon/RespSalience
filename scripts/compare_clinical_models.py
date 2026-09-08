@@ -52,6 +52,12 @@ def load_seed_avg(run_root: str) -> pd.DataFrame:
 
 # ---------- fast DeLong (Sun & Xu 2014) for two paired ROC curves ----------
 def _midrank(x):
+    # A NaN never compares equal to itself, so the tie-run scan below would never advance past one
+    # and the function would spin forever. Fail loudly instead: a NaN score is a data defect the
+    # caller must resolve (drop the subject, or supply a real score), not something to rank around.
+    if not np.all(np.isfinite(x)):
+        raise ValueError(f"_midrank: {int((~np.isfinite(x)).sum())} non-finite score(s); "
+                         "drop or impute them before calling delong_test")
     J = np.argsort(x); Z = x[J]; N = len(x); T = np.zeros(N); i = 0
     while i < N:
         j = i

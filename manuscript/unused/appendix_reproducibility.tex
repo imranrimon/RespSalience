@@ -1,0 +1,142 @@
+\section{Reproducibility Audit}\label{app:repro}
+
+Every numerical claim in this paper was re-derived from the stored per-fold prediction artifacts as a
+final check before submission. We report the audit in full, including the places where it failed, because
+a reader cannot otherwise distinguish numbers that have been verified from numbers that merely have not
+been questioned.
+
+\subsection{Protocol}
+Each table cell was recomputed from the persisted subject-level prediction files
+(\texttt{fold*/test\_eval/prism\_breath\_predictions.csv}) rather than copied from a logged summary, using
+a single script (\texttt{scripts/regenerate\_supplementary\_tables.py}) that derives every column of a
+table from one artifact and one label set. Where a reported number did not match, we searched
+\emph{exhaustively}: all $66$ five-fold prediction sets stored under \texttt{outputs/} were scored, and
+single runs, pairs and triples (for seed-averaged claims) were compared against the published values.
+Because per-fold RR-MAE is independent of the labels, it serves as an artifact fingerprint that
+identifies a run uniquely.
+
+Two label conventions exist in the archive and are distinguished throughout. Nine neonates were stored
+with a stale \texttt{age\_months}${=}6$ and were therefore scored against the $2$--$12$mo WHO cutoff
+rather than the neonatal one. Correcting them moves the cohort from $86$ to $84$ tachypneic subjects and
+the $<$2mo band from $29$ to $38$ subjects. All corrected-label results are reported here.
+
+\subsection{What reproduces}
+The audit reproduces the paper's central evidence exactly. Table~\ref{tab:audit} summarizes.
+
+\begin{table}[!t]
+\caption{Reproducibility audit. ``Exact'' means every cell matched the recomputed value to the printed
+precision.}
+\label{tab:audit}\centering\small
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{@{}llc@{}}\toprule
+Table & Rows & Verdict\\\midrule
+Objective isolation & all $9$ & Exact\\
+Framing, salience rows & $2$ (three-seed each) & Exact\\
+Framing, PRISM rate $\to$ threshold & $1$ & Exact\\
+Component isolation, raw-flow FFT & $1$ & Exact\\
+Ablations & $8$ of $9$ & Exact\\
+Head-to-head, published extractors & $4$ & Exact\\
+Per-fold supplement, published extractors & $4$ & Exact ($4$ d.p.)\\\midrule
+Ablations, ``Full PRISM'' & $1$ & Artifact absent\\
+Head-to-head, PRISM & $1$ & Artifact absent\\
+Component isolation, fusion rows & $2$ & Artifact absent\\
+Per-fold supplement, PRISM & $3$ & Artifact absent\\
+Clinical operating points & all & Not uniquely identifiable\\
+Radar and cross-dataset & all & Artifact absent\\
+Independent replication & all & Artifact absent\\\bottomrule
+\end{tabular}
+\end{table}
+
+The objective-isolation table---the frozen-encoder comparison that carries the paper's central
+argument---matches its stored artifact row for row, including every RR-MAE and every DeLong $p$. The
+three-seed salience results likewise reproduce exactly ($0.884{\pm}0.020$ and $0.899{\pm}0.035$), as do
+all four published-extractor rows wherever they appear. The framing thesis is therefore verified
+end-to-end.
+
+\subsection{One missing artifact}
+Every number that did \emph{not} reproduce traces to a single cause: the prediction file for the main
+PRISM-Breath model run is no longer in the archive. No stored artifact reproduces its per-fold RR-MAE
+within $0.10$ under either label convention, and the eight ablation rows that surround it in the main
+ablation table all reproduce exactly---so the loss is specific to one run rather than systemic.
+
+Restoring it is not simply a matter of retraining. No stored signal directory holds the learned-flow
+representation together with depth for all $332$ subjects: the $332$-subject set carries the hand-crafted
+flow, the learned-flow set covers $297$ subjects, and the $332$-subject learned set has its depth channel
+zeroed. Reproducing the main run therefore requires re-extracting the learned flow for the $35$ absent
+subjects before any training. An alternative that is reproducible today is to re-baseline the main model
+on the $297$-subject learned-flow cohort, which matches the architecture described in the methods and the
+cohort already used for the framing analysis.
+
+The committed per-fold table additionally carries an internal inconsistency created by that loss: its
+\texttt{Mean$\pm$SD} entry is the mean and \emph{population} standard deviation of the per-fold AUROCs
+printed beside it, which correspond to the pre-correction labels, while its pooled cell reports the
+post-correction value. The most likely explanation is that a label correction updated only the
+label-dependent columns. We report these cells as they were computed, and flag them as not currently
+regenerable. Re-executing the main configuration and regenerating the affected tables with the script
+above is the single action that resolves all of them.
+
+We note explicitly what this does \emph{not} affect. The comparison against published extractors is
+unaffected in its baseline arm; the ablation conclusion (no single component is individually
+load-bearing) rests on rows that all reproduce; and the objective and framing analyses do not use the
+missing run.
+
+\subsection{Numbers that are not independently verifiable}
+Three further claims could not be checked and are marked as such rather than removed.
+
+\textbf{Clinical operating points.} These are reported as a three-seed average. The averaging is not
+uniquely identifiable from the archive: $56$ different triples of stored runs reproduce the full-cohort
+values within tolerance, and no stored run is named for the seeds recorded in the hyperparameter table.
+The values are plausible but should be regarded as unaudited until the seed artifacts are re-generated
+and named.
+
+\textbf{Radar and cross-dataset transfer.} No radar result artifact is retained; only the radar
+processing script and the raw recordings remain, so the phantom and $50$-child results cannot be
+recomputed here. One cross-dataset evaluation file survives and reports different values, but it is an
+\emph{incomplete} run---its log terminates at $203$ of $252$ videos---so it neither confirms nor
+supersedes the published rows. Both should be regenerated.
+
+\textbf{Independent replication.} The external-cohort waveforms and their extraction code were not
+retained, so those results cannot be recomputed here.
+
+\subsection{Cohort and signal-set mismatches}
+Two presentational issues surfaced that are independent of the missing artifact and that we correct in
+the tables and captions.
+
+First, the component-isolation table draws its raw-signal and encoder rows from the learned-flow
+extraction on $297$ subjects while its fusion rows are on $332$; the reported gain is internally matched
+but the column is not homogeneous. The raw-signal figure is also specific to that extraction: on the
+alternative extraction over all $332$ subjects the same FFT read-out reaches AUROC $0.81$--$0.83$ rather
+than $0.70$, so the low raw-signal baseline should not be read as a general property of optical flow.
+
+Second, the framing table lists its salience rows ($297$ subjects) alongside a $332$-subject PRISM entry
+in the same column. The statistics themselves are matched---the reported $p$ ranges are paired DeLong
+tests against a $297$-subject regression-trained reference, and both the AUROCs and the $p$ ranges
+reproduce exactly---and the caption states this. Only the visual juxtaposition of two cohorts in one
+column invites misreading, which we resolve by labelling $n$ on every row.
+
+\subsection{Corrections made during the audit}
+The audit also surfaced implementation issues, all corrected in the released code.
+
+\textbf{Calibration leakage.} Two analysis scripts selected a threshold or fitted a risk model on
+validation predictions pooled across folds and then scored the pooled test set. Across this run the
+validation splits draw from only $49$ distinct subjects, roughly ten of which fall in each test fold, so
+the pooled procedure leaks. Both now calibrate per fold, and a guard raises rather than reporting a
+result fitted on evaluated subjects.
+
+\textbf{Conformal coverage.} The single pooled nonconformity width persisted in one artifact family
+attains $0.762$ empirical coverage against a $0.80$ target, and $0.62$ for neonates. The age-conditional
+rule described in the methods attains $0.81$ overall and $0.80$--$0.82$ in every band. Coverage is now
+reported explicitly so the distinction is visible.
+
+\textbf{Inactive audio branch.} The audio branch receives zero fusion weight for all $332$ subjects and
+its counterfactual removal changes the predicted rate by exactly zero for every subject. The system is
+described as two-modality throughout.
+
+\textbf{Near-uniform fusion weights.} The learned reliability weights are $0.498{\pm}0.007$ (depth) and
+$0.502{\pm}0.007$ (flow), so the fusion behaves as an equal-weight average. This is now stated where the
+weighting is defined.
+
+\subsection{Release}
+The audit script, the table regeneration script, and the per-subject outputs behind every table in this
+appendix are released with the code. A reader who re-runs the regeneration script against the archive
+will reproduce the verdicts in Table~\ref{tab:audit}, including the failures.
