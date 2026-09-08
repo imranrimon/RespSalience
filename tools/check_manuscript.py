@@ -74,6 +74,33 @@ def main() -> int:
                             f"(labels will collide): {inc.group(2)} native {native:.2f}in -> {placed}in")
                     break
 
+    # A figure present BOTH in the graphicspath and in the document directory is a trap: the
+    # graphicspath copy wins, so a regenerated figure left in the document directory is silently
+    # ignored while a stale copy is typeset. This actually happened -- four figures compiled from
+    # copies a month older than the numbers they illustrated.
+    import hashlib
+    gp = re.search(B + B + r"graphicspath\{\{([^}]*)\}\}", text)
+    if gp:
+        gdir = MS / gp.group(1).strip("/")
+        seen = set()
+        for m in re.finditer(B + B + r"includegraphics(?:\[[^\]]*\])?\{([^}]+)\}", text):
+            name = m.group(1)
+            if name in seen:
+                continue
+            seen.add(name)
+            a, b = MS / name, gdir / name
+            if a.exists() and b.exists():
+                ha = hashlib.md5(a.read_bytes()).hexdigest()
+                hb = hashlib.md5(b.read_bytes()).hexdigest()
+                if ha != hb:
+                    newer = "document dir" if a.stat().st_mtime > b.stat().st_mtime else "graphicspath"
+                    problems.append(
+                        f"figure shadowed: {name} differs between manuscript/ and "
+                        f"{gp.group(1)} -- LaTeX will use the {gp.group(1)} copy; the newer file is in "
+                        f"the {newer}")
+            elif not b.exists() and not a.exists():
+                problems.append(f"figure not found in either manuscript/ or {gp.group(1)}: {name}")
+
     # A wide table in a single-column float overflows into the gutter.
     for m in re.finditer(B + B + r"begin\{(table\*?)\}(.*?)" + B + B + r"end\{\1\}", text, re.S):
         env, body = m.group(1), m.group(2)

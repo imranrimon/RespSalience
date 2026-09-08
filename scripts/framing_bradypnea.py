@@ -244,8 +244,8 @@ if __name__ == "__main__":
 
         fig.tight_layout(pad=0.5, w_pad=2.0)
         fig.subplots_adjust(bottom=0.30)
-        fig.savefig("manuscript/fig_framing_thresholds.png", dpi=600, bbox_inches="tight")
-        fig.savefig("manuscript/fig_framing_thresholds.pdf", dpi=600, bbox_inches="tight")
+        fig.savefig("manuscript/fig/fig_framing_thresholds.png", dpi=600, bbox_inches="tight")
+        fig.savefig("manuscript/fig/fig_framing_thresholds.pdf", dpi=600, bbox_inches="tight")
         # Cache what was plotted so the figure can be restyled without re-running the CV.
         pd.DataFrame([{"model": n, **brady[n]} for n in names]).to_csv(
             "outputs/framing_bradypnea_bars.csv", index=False)

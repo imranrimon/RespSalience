@@ -39,7 +39,7 @@ RUN = os.path.join(ROOT, "outputs", "paper_runs", "pedrr_kfold_salience_publishe
 CKPT_RUNS = [os.path.join(ROOT, "outputs", "paper_runs",
                           f"pedrr_kfold_salience_nossl332det_seed{i}") for i in range(6)]
 CASE = "ID-1266"                      # true RR 78.5, regressed 42.4, mass above cutoff 0.22
-OUT = os.path.join(ROOT, "manuscript", "fig_overview")
+OUT = os.path.join(ROOT, "manuscript", "fig", "fig_overview")
 
 INK, MUTED = "#1b2a38", "#8a949e"
 REG, DIST = "#c0603a", "#1b4f72"

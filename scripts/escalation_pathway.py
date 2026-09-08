@@ -53,7 +53,7 @@ else:
 
 RUN = _DEFAULT_RUN if os.path.isabs(_DEFAULT_RUN) else os.path.join(ROOT, "outputs", "paper_runs", _DEFAULT_RUN)
 CFG = os.path.join(ROOT, "src", "config", "age_conditional_conformal.json")
-FIG = os.path.join(ROOT, "manuscript", _FIG_NAME)
+FIG = os.path.join(ROOT, "manuscript", "fig", _FIG_NAME)
 print(f"[escalation_pathway] run-root = {RUN}", flush=True)
 ALPHA = 0.20
 BANDS = ["<2mo", "2-12mo", "12-60mo"]

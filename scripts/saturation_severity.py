@@ -46,7 +46,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "scripts"))
 OBS_OUT = os.path.join(ROOT, "outputs", "saturation_observational.csv")
 CTL_OUT = os.path.join(ROOT, "outputs", "saturation_controlled.csv")
-FIG = os.path.join(ROOT, "manuscript", "fig_saturation")
+FIG = os.path.join(ROOT, "manuscript", "fig", "fig_saturation")
 
 WHO_NEONATE = 60.0
 
